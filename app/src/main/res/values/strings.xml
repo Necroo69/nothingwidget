@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Nothing Widgets</string>
+    <string name="weather_unavailable" translatable="false">WEATHER UNAVAILABLE</string>
 </resources>

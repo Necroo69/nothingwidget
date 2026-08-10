@@ -33,7 +33,8 @@ class WeatherWidget : AppWidgetProvider() {
                     
                     views.setTextColor(R.id.widget_weather_temp, parsedColor)
                     views.setTextViewText(R.id.widget_weather_temp, "--°")
-                    
+                    views.setTextViewText(R.id.widget_weather_desc, context.getString(R.string.weather_unavailable))
+
                     appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
             } finally {

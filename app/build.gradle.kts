@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.example.nothingwidget"
-    compileSdk = 37
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.sritam.nothingwidget"
