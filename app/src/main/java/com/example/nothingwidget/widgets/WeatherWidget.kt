@@ -37,7 +37,7 @@ class WeatherWidget : AppWidgetProvider() {
                 
                 val temp = prefsRepo.lastWeatherTempFlow.first().toInt()
                 val code = prefsRepo.lastWeatherCodeFlow.first()
-                val condition = mapWeatherCodeToCondition(code)
+                val condition = WeatherCondition.fromWmoCode(code)
 
                 for (appWidgetId in appWidgetIds) {
                     val views = RemoteViews(context.packageName, R.layout.widget_weather)
@@ -52,21 +52,6 @@ class WeatherWidget : AppWidgetProvider() {
             } finally {
                 pendingResult.finish()
             }
-        }
-    }
-
-    private fun mapWeatherCodeToCondition(code: Int): WeatherCondition {
-        return when (code) {
-            0 -> WeatherCondition.SUNNY
-            1, 2, 3 -> WeatherCondition.PARTLY_CLOUDY
-            45, 48 -> WeatherCondition.FOGGY
-            51, 53, 55, 56, 57 -> WeatherCondition.RAINY
-            61, 63, 65, 66, 67 -> WeatherCondition.RAINY
-            71, 73, 75, 77 -> WeatherCondition.SNOWY
-            80, 81, 82 -> WeatherCondition.RAINY
-            85, 86 -> WeatherCondition.SNOWY
-            95, 96, 99 -> WeatherCondition.THUNDERSTORM
-            else -> WeatherCondition.CLOUDY
         }
     }
 }

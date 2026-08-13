@@ -18,17 +18,27 @@ class BatteryRepository(private val context: Context) {
     }
 
     companion object {
+        /**
+         * Converts a raw battery [level]/[scale] pair (as reported by
+         * [BatteryManager]) into a 0-100 percentage. Returns 100 as a safe
+         * fallback when the values are unavailable or invalid (negative level
+         * or non-positive scale, which would otherwise divide by zero).
+         */
+        fun batteryPercentage(level: Int, scale: Int): Int {
+            return if (level >= 0 && scale > 0) {
+                (level * 100 / scale.toFloat()).toInt()
+            } else {
+                100
+            }
+        }
+
         fun getBatteryInfoSync(context: Context): BatteryInfo {
             val batteryIntent = context.applicationContext.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
             val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
             val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-            
-            val batteryPct = if (level != -1 && scale != -1) {
-                (level * 100 / scale.toFloat()).toInt()
-            } else {
-                100
-            }
+
+            val batteryPct = batteryPercentage(level, scale)
 
             val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
 

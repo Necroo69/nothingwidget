@@ -317,21 +317,34 @@ Zero accessibility warnings in Android Studio
 App is fully navigable with TalkBack
 Light mode looks as good as dark mode
 All touch targets ≥ 48dp
-Phase 9 — Testing
+## Phase 9 — Testing (🚧 IN PROGRESS — unit tests done)
 Objective: Build confidence for Play Store release. 
 Est. time: 3–4 days
-Tasks
-Replace 
-ExampleUnitTest.kt
- with real unit tests:
-CustomizeViewModelTest
- — color change updates state
-WidgetRepositoryImplTest
- — save and retrieve config
-DateFormatterTest
- — each format option produces correct output
-BatteryCalculationTest
- — level/scale → percentage edge cases
+
+### Unit tests (✅ DONE)
+Replaced the placeholder `ExampleUnitTest.kt` with 25 host-side JVM unit tests
+(run via `./gradlew testDebugUnitTest`, all passing):
+- `WidgetCustomizerViewModelTest` — load/update accent color, toggle monochrome,
+  save persists to repo + fires callback, no-op guards before a config is loaded
+  (actual class is `WidgetCustomizerViewModel`, not `CustomizeViewModel`)
+- `WidgetRepositoryTest` — defaults returned on empty DB, saved config overrides
+  matching default without dropping others (BUG-01 regression guard), custom
+  studio widgets appended, `getConfigById` save/fallback/null paths
+  (actual class is `WidgetRepository`, not `WidgetRepositoryImpl`)
+- `WeatherCodeMapperTest` — WMO code → `WeatherCondition` for every branch
+  (replaces the planned `DateFormatterTest`; date is rendered by `TextClock`,
+  so there is no formatter class to unit test)
+- `BatteryCalculationTest` — level/scale → percentage edge cases incl.
+  non-100 scale, unavailable values, divide-by-zero guard
+
+Supporting refactors (remove duplication, make logic testable):
+- Extracted `WeatherCondition.fromWmoCode()` — single source of truth previously
+  duplicated in `WeatherRepository` and `WeatherWidget`
+- Extracted `BatteryRepository.batteryPercentage(level, scale)` pure function
+- Added `MainDispatcherRule` + `FakeWidgetConfigDao` test helpers
+- Added `kotlinx-coroutines-test` test dependency
+
+### Instrumented tests (⬜ TODO — require a device/emulator)
 Add instrumented tests:
 HomeScreenTest
  — all 4 widget cards visible

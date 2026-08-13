@@ -27,7 +27,26 @@ enum class WeatherCondition(val label: String, val dotSymbol: String) {
     RAINY("Rain", "🌧"),
     THUNDERSTORM("Thunderstorm", "⚡"),
     SNOWY("Snow", "❄"),
-    FOGGY("Fog", "≡")
+    FOGGY("Fog", "≡");
+
+    companion object {
+        /**
+         * Maps an OpenMeteo WMO weather interpretation code to a [WeatherCondition].
+         * Single source of truth shared by the repository and the widget provider.
+         */
+        fun fromWmoCode(code: Int): WeatherCondition = when (code) {
+            0 -> SUNNY
+            1, 2, 3 -> PARTLY_CLOUDY
+            45, 48 -> FOGGY
+            51, 53, 55, 56, 57 -> RAINY
+            61, 63, 65, 66, 67 -> RAINY
+            71, 73, 75, 77 -> SNOWY
+            80, 81, 82 -> RAINY
+            85, 86 -> SNOWY
+            95, 96, 99 -> THUNDERSTORM
+            else -> CLOUDY
+        }
+    }
 }
 
 data class HourlyForecast(
