@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -174,7 +175,7 @@ fun WidgetGalleryScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Palette, contentDescription = "Card Builder", modifier = Modifier.size(16.dp))
                             Text("CARD BUILDER", fontSize = 12.sp, fontFamily = NothingDotFontFamily)
                         }
                     }
@@ -291,10 +292,11 @@ fun GalleryWidgetCardItem(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
                     modifier = Modifier
+                        .minimumInteractiveComponentSize()
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                        .clickable { onCustomizeClick() }
+                        .clickable(onClickLabel = "Edit Widget") { onCustomizeClick() }
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Row(
@@ -308,9 +310,10 @@ fun GalleryWidgetCardItem(
 
                 Box(
                     modifier = Modifier
+                        .minimumInteractiveComponentSize()
                         .clip(CircleShape)
                         .background(NothingRed)
-                        .clickable { onPinClick() }
+                        .clickable(onClickLabel = "Add to Home Screen") { onPinClick() }
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Row(

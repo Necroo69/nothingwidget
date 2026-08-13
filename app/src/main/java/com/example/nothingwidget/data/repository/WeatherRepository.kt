@@ -1,61 +1,56 @@
 package com.example.nothingwidget.data.repository
 
-import com.example.nothingwidget.domain.model.HourlyForecast
+import com.example.nothingwidget.data.remote.OpenMeteoApi
+import com.example.nothingwidget.data.remote.WeatherResponse
 import com.example.nothingwidget.domain.model.WeatherCondition
 import com.example.nothingwidget.domain.model.WeatherInfo
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
 
-class WeatherRepository {
-    private val _weatherState = MutableStateFlow(
+class WeatherRepository(
+    private val appPrefsRepo: AppPreferencesRepository
+) {
+    private val api: OpenMeteoApi by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.open-meteo.com/")
+            .addConverterFactory(MoshiConverterFactory.create())
+            .build()
+            .create(OpenMeteoApi::class.java)
+    }
+
+    val weatherState: Flow<WeatherInfo> = combine(
+        appPrefsRepo.useGpsLocationFlow,
+        appPrefsRepo.selectedCityFlow,
+        appPrefsRepo.detectedCityNameFlow,
+        appPrefsRepo.lastWeatherTempFlow,
+        appPrefsRepo.lastWeatherCodeFlow
+    ) { useGps, selectedCity, detectedCity, temp, code ->
+        val city = if (useGps && detectedCity.isNotBlank()) detectedCity else selectedCity
         WeatherInfo(
-            cityName = "London",
-            temperatureC = 21,
-            condition = WeatherCondition.PARTLY_CLOUDY,
-            highC = 24,
-            lowC = 15,
-            humidityPercent = 62,
-            windSpeedKmh = 12,
-            uvIndex = 5,
-            precipitationChancePercent = 15,
-            forecastHourly = listOf(
-                HourlyForecast("12 PM", 21, WeatherCondition.SUNNY),
-                HourlyForecast("3 PM", 24, WeatherCondition.PARTLY_CLOUDY),
-                HourlyForecast("6 PM", 22, WeatherCondition.CLOUDY),
-                HourlyForecast("9 PM", 18, WeatherCondition.CLEAR_NIGHT),
-                HourlyForecast("12 AM", 15, WeatherCondition.CLEAR_NIGHT)
-            )
+            cityName = city.ifBlank { "London" },
+            temperatureC = temp.toInt(),
+            condition = mapWeatherCodeToCondition(code)
         )
-    )
+    }
 
-    val weatherState: Flow<WeatherInfo> = _weatherState.asStateFlow()
-
-    fun updateCity(cityName: String) {
-        val updated = when (cityName.lowercase()) {
-            "tokyo" -> _weatherState.value.copy(
-                cityName = "Tokyo",
-                temperatureC = 28,
-                condition = WeatherCondition.SUNNY,
-                highC = 30,
-                lowC = 22
-            )
-            "new york" -> _weatherState.value.copy(
-                cityName = "New York",
-                temperatureC = 18,
-                condition = WeatherCondition.RAINY,
-                highC = 20,
-                lowC = 14
-            )
-            "berlin" -> _weatherState.value.copy(
-                cityName = "Berlin",
-                temperatureC = 19,
-                condition = WeatherCondition.CLOUDY,
-                highC = 22,
-                lowC = 13
-            )
-            else -> _weatherState.value.copy(cityName = cityName)
+    suspend fun fetchWeather(lat: Double, lon: Double): WeatherResponse {
+        return api.getCurrentWeather(latitude = lat, longitude = lon)
+    }
+    
+    private fun mapWeatherCodeToCondition(code: Int): WeatherCondition {
+        return when (code) {
+            0 -> WeatherCondition.SUNNY
+            1, 2, 3 -> WeatherCondition.PARTLY_CLOUDY
+            45, 48 -> WeatherCondition.FOGGY
+            51, 53, 55, 56, 57 -> WeatherCondition.RAINY
+            61, 63, 65, 66, 67 -> WeatherCondition.RAINY
+            71, 73, 75, 77 -> WeatherCondition.SNOWY
+            80, 81, 82 -> WeatherCondition.RAINY
+            85, 86 -> WeatherCondition.SNOWY
+            95, 96, 99 -> WeatherCondition.THUNDERSTORM
+            else -> WeatherCondition.CLOUDY
         }
-        _weatherState.value = updated
     }
 }

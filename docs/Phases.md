@@ -251,7 +251,7 @@ Definition of Done
 Change color to red, tap ADD → widget on home screen shows red text within 3 seconds
 Place same widget type twice → each instance can have different colors independently
 Kill app, reopen Customize → previous selections are pre-filled
-Phase 6 — Onboarding
+## Phase 6 — Onboarding (✅ DONE)
 Objective: New users understand how to use the app in < 30 seconds. 
 Est. time: 1 day
 Tasks
@@ -264,7 +264,7 @@ Definition of Done
 First launch shows onboarding
 Subsequent launches skip onboarding
 User can re-trigger onboarding from Settings → "How to add widgets"
-Phase 7 — Weather Widget (Real Data)
+## Phase 7 — Weather Widget (Real Data) (✅ DONE)
 Objective: WeatherWidget shows actual weather using OpenMeteo (no API key required). 
 Est. time: 3 days
 Tasks
@@ -285,7 +285,7 @@ Definition of Done
 Weather widget shows real temperature within 2 minutes of placement on fresh install
 Widget shows cached data when offline, with "last updated X min ago" label
 Unit toggle (°C/°F) immediately applies to displayed temperature
-Phase 8 — Design Polish & Accessibility
+## Phase 8: Design Polish & Accessibility (✅ DONE)
 Objective: Every pixel is intentional. Every element is accessible. 
 Est. time: 2–3 days
 Tasks

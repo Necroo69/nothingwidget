@@ -24,4 +24,14 @@
         android:textColor="#8E9192"
         android:fontFamily="@font/space_mono_regular"
         android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/widget_weather_city"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="LONDON"
+        android:textColor="#8E9192"
+        android:fontFamily="@font/space_mono_regular"
+        android:textSize="10sp"
+        android:layout_marginTop="4dp" />
 </LinearLayout>

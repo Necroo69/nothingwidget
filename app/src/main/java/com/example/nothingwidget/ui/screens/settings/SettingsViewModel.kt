@@ -9,12 +9,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class SettingsUiState(
-    val isDarkTheme: Boolean = true,
+    val themeMode: String = "SYSTEM",
     val isHapticFeedbackEnabled: Boolean = true,
     val is24HourClock: Boolean = true,
     val isCelsius: Boolean = true,
     val widgetUpdateIntervalMinutes: Int = 15,
-    val selectedCity: String = "London"
+    val selectedCity: String = "London",
+    val useGpsLocation: Boolean = false
 )
 
 class SettingsViewModel(
@@ -26,8 +27,8 @@ class SettingsViewModel(
 
     init {
         viewModelScope.launch {
-            appPreferencesRepository.isDarkThemeFlow.collect { isDark ->
-                _state.value = _state.value.copy(isDarkTheme = isDark)
+            appPreferencesRepository.themeModeFlow.collect { mode ->
+                _state.value = _state.value.copy(themeMode = mode)
             }
         }
         viewModelScope.launch {
@@ -50,11 +51,16 @@ class SettingsViewModel(
                 _state.value = _state.value.copy(selectedCity = city)
             }
         }
+        viewModelScope.launch {
+            appPreferencesRepository.useGpsLocationFlow.collect { useGps ->
+                _state.value = _state.value.copy(useGpsLocation = useGps)
+            }
+        }
     }
 
-    fun toggleTheme() {
+    fun setThemeMode(mode: String) {
         viewModelScope.launch {
-            appPreferencesRepository.setDarkTheme(!_state.value.isDarkTheme)
+            appPreferencesRepository.setThemeMode(mode)
         }
     }
 
@@ -83,6 +89,12 @@ class SettingsViewModel(
     fun setSelectedCity(city: String) {
         viewModelScope.launch {
             appPreferencesRepository.setSelectedCity(city)
+        }
+    }
+
+    fun setUseGpsLocation(useGps: Boolean) {
+        viewModelScope.launch {
+            appPreferencesRepository.setUseGpsLocation(useGps)
         }
     }
 }

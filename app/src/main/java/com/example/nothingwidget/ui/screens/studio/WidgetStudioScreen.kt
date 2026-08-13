@@ -1,5 +1,9 @@
 package com.example.nothingwidget.ui.screens.studio
 
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -232,14 +236,16 @@ fun WidgetStudioScreen(
                     Box(
                         modifier = Modifier
                             .size(42.dp)
+                            .minimumInteractiveComponentSize()
+                            .semantics { contentDescription = "Select Color $hex" }
                             .clip(CircleShape)
                             .background(parsed)
                             .border(2.dp, if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent, CircleShape)
-                            .clickable { viewModel.setAccentHex(hex) },
+                            .clickable(onClickLabel = "Select Color") { viewModel.setAccentHex(hex) },
                         contentAlignment = Alignment.Center
                     ) {
                         if (isSelected) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = if (hex == "#FFFFFF") Color.Black else Color.White)
+                            Icon(Icons.Default.Check, contentDescription = "Selected", tint = if (hex == "#FFFFFF") Color.Black else Color.White)
                         }
                     }
                 }
@@ -268,7 +274,7 @@ fun WidgetStudioScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Build, contentDescription = null)
+                    Icon(Icons.Default.Build, contentDescription = "Build Widget")
                     Text("GENERATE & DEPLOY WIDGET", fontSize = 14.sp, fontFamily = NothingDotFontFamily, fontWeight = FontWeight.Bold)
                 }
             }

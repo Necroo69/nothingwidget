@@ -22,23 +22,24 @@ import com.example.nothingwidget.ui.screens.gallery.WidgetGalleryScreen
 import com.example.nothingwidget.ui.screens.gallery.WidgetGalleryViewModel
 import com.example.nothingwidget.ui.screens.glyph.GlyphStudioScreen
 import com.example.nothingwidget.ui.screens.glyph.GlyphStudioViewModel
+import com.example.nothingwidget.ui.screens.onboarding.OnboardingScreen
 import com.example.nothingwidget.ui.screens.settings.SettingsScreen
 import com.example.nothingwidget.ui.screens.settings.SettingsViewModel
 import com.example.nothingwidget.ui.screens.studio.WidgetStudioScreen
 import com.example.nothingwidget.ui.screens.studio.WidgetStudioViewModel
 
 @Composable
-fun AppNavGraph(navController: NavHostController) {
+fun AppNavGraph(navController: NavHostController, startDestination: String = Screen.Gallery.route) {
     val context = LocalContext.current
 
     val db = remember { AppDatabase.getInstance(context) }
     val widgetRepo = remember { WidgetRepository(db.widgetConfigDao()) }
-    val weatherRepo = remember { WeatherRepository() }
+    val appPrefsRepo = remember { AppPreferencesRepository(context) }
+    val weatherRepo = remember { WeatherRepository(appPrefsRepo) }
     val batteryRepo = remember { BatteryRepository(context) }
     val quickSettingsRepo = remember { QuickSettingsRepository() }
     val stepRepo = remember { StepTrackerRepository(db.stepDao()) }
     val audioRepo = remember { AudioRepository() }
-    val appPrefsRepo = remember { AppPreferencesRepository(context) }
 
     val galleryViewModel = remember {
         WidgetGalleryViewModel(
@@ -58,8 +59,19 @@ fun AppNavGraph(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Gallery.route
+        startDestination = startDestination
     ) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                appPrefsRepo = appPrefsRepo,
+                onComplete = {
+                    navController.navigate(Screen.Gallery.route) {
+                        popUpTo(0) // Clear backstack so user can't go back to onboarding
+                    }
+                }
+            )
+        }
+
         composable(Screen.Gallery.route) {
             WidgetGalleryScreen(
                 viewModel = galleryViewModel,
@@ -99,7 +111,8 @@ fun AppNavGraph(navController: NavHostController) {
         composable(Screen.Settings.route) {
             SettingsScreen(
                 viewModel = settingsViewModel,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onNavigateToOnboarding = { navController.navigate(Screen.Onboarding.route) }
             )
         }
     }
