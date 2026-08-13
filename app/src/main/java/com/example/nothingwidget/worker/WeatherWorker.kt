@@ -1,7 +1,8 @@
 package com.example.nothingwidget.worker
 
 import android.content.Context
-import android.content.Intent
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.nothingwidget.widgets.WeatherWidget
@@ -16,13 +17,18 @@ class WeatherWorker(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
             // Phase 7 will fetch actual data here and save to DataStore/Room.
-            // For now, we just broadcast the update to the widget.
-            
-            val updateIntent = Intent(context, WeatherWidget::class.java).apply {
-                action = "android.appwidget.action.APPWIDGET_UPDATE"
+            // For now, force-refresh every placed WeatherWidget instance directly.
+            // Sending ACTION_APPWIDGET_UPDATE without EXTRA_APPWIDGET_IDS can be
+            // ignored by AppWidgetProvider, so resolve the active IDs here.
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(
+                ComponentName(context, WeatherWidget::class.java)
+            )
+
+            if (appWidgetIds.isNotEmpty()) {
+                WeatherWidget().onUpdate(context, appWidgetManager, appWidgetIds)
             }
-            context.sendBroadcast(updateIntent)
-            
+
             Result.success()
         } catch (e: Exception) {
             Result.retry()

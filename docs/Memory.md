@@ -519,3 +519,13 @@ What this project IS NOT:
 A working Android widget app ready for production.
 The gap:
 The gap between "looks good in screenshots" and "works reliably on a stranger's phone" is where all the missing architecture lives. The good news: the hardest part (design decisions and visual execution) is done well. The missing parts (DataStore, AlarmManager, ViewModel) are well-documented patterns with clear implementation paths.
+## 6. Maintenance Notes (2026-08-09)
+
+### Fixed: WeatherWorker refresh broadcast could be ignored
+- **Bug:** `WeatherWorker` sent `ACTION_APPWIDGET_UPDATE` to `WeatherWidget` without `AppWidgetManager.EXTRA_APPWIDGET_IDS`. `AppWidgetProvider` update broadcasts are ID-driven, so a broadcast without active widget IDs can be ignored and the periodic WorkManager job may complete without refreshing any placed weather widgets.
+- **Fix:** `WeatherWorker` now resolves active weather widget IDs with `AppWidgetManager.getAppWidgetIds(ComponentName(...))` and calls `WeatherWidget.onUpdate(...)` directly only when at least one weather widget is placed.
+- **Current limitation:** This does not add live weather networking. Until the Phase 7 weather data source is implemented, the widget intentionally renders a neutral unavailable state (`--°` / `WEATHER UNAVAILABLE`) instead of stale fake weather.
+
+### Fixed: compile SDK drifted past target SDK
+- **Bug:** `compileSdk` was set to `37` while the project target was `35` and the project memory already noted SDK 35 as the intended baseline. That can break local builds on machines with only the intended Android 35 platform installed.
+- **Fix:** `compileSdk` is now aligned to `35` while keeping `targetSdk = 35`.
