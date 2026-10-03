@@ -58,6 +58,7 @@ fun WidgetStudioScreen(
     onBackClick: () -> Unit
 ) {
     val state by viewModel.builderState.collectAsStateWithLifecycle()
+    val batteryInfo by viewModel.batteryInfo.collectAsStateWithLifecycle()
 
     val colors = listOf("#D71921", "#FFFFFF", "#FFD600", "#00E676")
 
@@ -117,6 +118,7 @@ fun WidgetStudioScreen(
 
             InteractiveWidgetView(
                 config = tempPreviewConfig,
+                batteryInfo = batteryInfo,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)

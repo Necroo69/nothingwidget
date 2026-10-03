@@ -552,6 +552,11 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 - **Bug:** The tile displays `isAirplaneModeOn`, but `WidgetGalleryViewModel` routed `"airplane"` to `toggleDnd()`.
 - **Fix:** Added `QuickSettingsRepository.toggleAirplaneMode()` and routed the tile to it. The preview state is still mock data, not real system toggles.
 
+### Fixed: In-app battery previews showed a stale or fake %
+- **Bug:** The gallery card read the level once, when `BatteryRepository` was constructed, and nothing ever called `updateBatteryState()`. The customizer and Studio previews passed no battery data at all, so they showed the hardcoded `BatteryInfo()` defaults (84% / 18h). On an emulator, the customizer showed 84% while the device was at 42–77%.
+- **Fix:** `BatteryRepository.batteryState` is now a `callbackFlow` backed by a context-registered `ACTION_BATTERY_CHANGED` receiver. The sticky broadcast delivers the current value on registration, and `distinctUntilChanged()` drops voltage/temperature-only updates. The gallery, customizer and Studio ViewModels collect it with `stateIn(WhileSubscribed(5000))`, seeded from `currentBatteryInfo()` so the fake 84% never flashes.
+- **Verified (emulator):** all three previews follow `dumpsys battery set level` live. One receiver is registered while a preview is visible, and none 8 s after going home. The home-screen `BatteryWidget` still uses `getBatteryInfoSync()`.
+
 ### Known, not fixed here (needs a design decision)
 - The customizer saves by preset id, but providers read hard-coded ids (`clock_digital_default`, `date_default`, `battery_default`, `weather_default`). Customizing any other preset (analog/world clock, Studio-built widgets) saves fine but never changes a placed widget. This is backend-roadmap **B3** (key configs on `appWidgetId`).
 - `WeatherWorker` is enqueued only from `BootReceiver`, so after a fresh install it never runs until the first reboot. It currently has no data to fetch, so the user sees no difference. Schedule it from `WeatherWidget.onEnabled`/`onDisabled` when Phase 7 adds real weather.

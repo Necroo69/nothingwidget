@@ -51,8 +51,8 @@ fun AppNavGraph(navController: NavHostController) {
         )
     }
 
-    val customizerViewModel = remember { WidgetCustomizerViewModel(widgetRepo) }
-    val studioViewModel = remember { WidgetStudioViewModel(widgetRepo) }
+    val customizerViewModel = remember { WidgetCustomizerViewModel(widgetRepo, batteryRepo) }
+    val studioViewModel = remember { WidgetStudioViewModel(widgetRepo, batteryRepo) }
     val glyphViewModel = remember { GlyphStudioViewModel() }
     val settingsViewModel = remember { SettingsViewModel(appPrefsRepo) }
 
