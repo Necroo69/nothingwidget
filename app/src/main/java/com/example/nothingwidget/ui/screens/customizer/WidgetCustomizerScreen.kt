@@ -67,6 +67,7 @@ fun WidgetCustomizerScreen(
 
     val configState by viewModel.config.collectAsStateWithLifecycle()
     val config = configState
+    val batteryInfo by viewModel.batteryInfo.collectAsStateWithLifecycle()
 
     val colorOptions = listOf(
         "#D71921" to "Nothing Red",
@@ -121,6 +122,7 @@ fun WidgetCustomizerScreen(
 
                 InteractiveWidgetView(
                     config = config,
+                    batteryInfo = batteryInfo,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)

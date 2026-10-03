@@ -2,13 +2,17 @@ package com.example.nothingwidget.ui.screens.studio
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nothingwidget.data.repository.BatteryRepository
 import com.example.nothingwidget.data.repository.WidgetRepository
+import com.example.nothingwidget.domain.model.BatteryInfo
 import com.example.nothingwidget.domain.model.NothingWidgetConfig
 import com.example.nothingwidget.domain.model.WidgetSize
 import com.example.nothingwidget.domain.model.WidgetType
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class StudioBuilderState(
@@ -21,11 +25,18 @@ data class StudioBuilderState(
 )
 
 class WidgetStudioViewModel(
-    private val widgetRepository: WidgetRepository
+    private val widgetRepository: WidgetRepository,
+    batteryRepository: BatteryRepository
 ) : ViewModel() {
 
     private val _builderState = MutableStateFlow(StudioBuilderState())
     val builderState: StateFlow<StudioBuilderState> = _builderState.asStateFlow()
+
+    val batteryInfo: StateFlow<BatteryInfo> = batteryRepository.batteryState.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = batteryRepository.currentBatteryInfo()
+    )
 
     fun setWidgetType(type: WidgetType) {
         _builderState.value = _builderState.value.copy(
