@@ -240,13 +240,8 @@ buildTypes {
         proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }
 }
-RULE-B3: compileSdk and targetSdk must match
-Violation found:
- 
-compileSdk = 37
- but 
-targetSdk = 34
-. Both must be the same value (use the latest stable).
+RULE-B3: compileSdk must be >= targetSdk, and >= what dependencies require
+compileSdk does not have to equal targetSdk. Never lower compileSdk below what the AndroidX dependencies declare in their AAR metadata. Lowering it from 37 to 35 broke assembleDebug on 2026-08-09 (core 1.19 and lifecycle 2.11 need 37). Raise targetSdk on its own schedule (Play policy), separately from compileSdk. Verify with ./gradlew assembleDebug, not just compileDebugKotlin.
 RULE-B4: No debug flags in release builds
 No 
 Log.d/v/i

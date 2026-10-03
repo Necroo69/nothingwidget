@@ -54,12 +54,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.nothingwidget.R
 import com.example.nothingwidget.domain.model.NothingWidgetConfig
-import com.example.nothingwidget.domain.model.WidgetType
 import com.example.nothingwidget.ui.components.InteractiveWidgetView
 import com.example.nothingwidget.ui.components.NothingGlassCard
 import com.example.nothingwidget.ui.components.NothingHeader
 import com.example.nothingwidget.ui.theme.NothingDotFontFamily
 import com.example.nothingwidget.ui.theme.NothingRed
+import com.example.nothingwidget.widgets.providerClassFor
 
 @Composable
 fun WidgetGalleryScreen(
@@ -343,23 +343,18 @@ fun GalleryWidgetCardItem(
 }
 
 fun requestPinWidget(context: Context, config: NothingWidgetConfig) {
+    val providerClass = providerClassFor(config.type)
+    if (providerClass == null) {
+        Toast.makeText(context, "${config.type.displayName} isn't available as a home screen widget yet", Toast.LENGTH_SHORT).show()
+        return
+    }
+
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
-        val providerClass = when (config.type) {
-            WidgetType.DIGITAL_CLOCK, WidgetType.ANALOG_CLOCK, WidgetType.WORLD_CLOCK -> Class.forName("com.example.nothingwidget.widgets.ClockWidget")
-            WidgetType.WEATHER -> Class.forName("com.example.nothingwidget.widgets.WeatherWidget")
-            WidgetType.BATTERY_CIRCLE -> Class.forName("com.example.nothingwidget.widgets.BatteryWidget")
-            WidgetType.QUICK_TOGGLES -> Class.forName("com.example.nothingwidget.widget.NothingQuickSettingsWidgetProvider")
-            WidgetType.STEP_TRACKER -> Class.forName("com.example.nothingwidget.widget.NothingStepWidgetProvider")
-            WidgetType.AUDIO_PLAYER -> Class.forName("com.example.nothingwidget.widget.NothingAudioWidgetProvider")
-            WidgetType.QUICK_NOTE -> Class.forName("com.example.nothingwidget.widgets.ClockWidget") // Fallback
-            WidgetType.DATE -> Class.forName("com.example.nothingwidget.widgets.DateWidget")
-        }
-
         val myProvider = ComponentName(context, providerClass)
-        if (appWidgetManager.isRequestPinAppWidgetSupported) {
+        val pinRequested = appWidgetManager.isRequestPinAppWidgetSupported &&
             appWidgetManager.requestPinAppWidget(myProvider, null, null)
-        } else {
+        if (!pinRequested) {
             Toast.makeText(context, "Auto-pin not supported on this launcher", Toast.LENGTH_SHORT).show()
         }
     } else {

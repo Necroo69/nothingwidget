@@ -69,7 +69,7 @@ lightColorScheme
 targetSdk = 34
  while 
 compileSdk = 37
- — inconsistent, targetSdk should match compileSdk.
+ — targetSdk is outdated (now 35). compileSdk does not need to match targetSdk, and must stay 37 for current AndroidX dependencies.
 Theme.Material.Light.NoActionBar
  in themes.xml — a Light theme for a dark app, inconsistent with the dark Compose theme.
 3. Target Users
@@ -269,8 +269,7 @@ R8 must be enabled in release builds
 No debug code in production
 Privacy policy URL must be provided
 targetSdk
- must equal 
-compileSdk
+ must meet the current Play Store minimum (compileSdk may be higher)
 10. Non-Functional Requirements
 Category
 Requirement
@@ -281,7 +280,7 @@ No continuous background services; AlarmManager only for clock
 Reliability
 Widgets survive 72h Doze; survive reboot
 Compatibility
-minSdk 26 (✅ already set); targetSdk = compileSdk
+minSdk 26 (✅ already set); targetSdk 35; compileSdk 37 (≥ targetSdk, as required by dependencies)
 Accessibility
 Content descriptions on all interactive elements and widgets
 Security
@@ -350,11 +349,7 @@ com.example.nothingwidget
 Enable R8 in release build (remove 
 optimization { enable = false }
 )
-Fix 
-targetSdk
- to match 
-compileSdk
- (both to 35)
+Raise targetSdk to 35 (done; keep compileSdk at 37, do not lower it)
 Fix clock widget to actually update every minute
 Add BOOT_COMPLETED receiver
 Remove dead "Terminal" nav tab

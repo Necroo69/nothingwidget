@@ -17,9 +17,9 @@ Version
 Min SDK
 26 (Android 8.0)
 Compile SDK
-37 ← should be 35
+37 ← keep at 37: core 1.19 / lifecycle 2.11 require it (lowering to 35 breaks assembleDebug — see 2026-10-02 notes)
 Target SDK
-34 ← must match compileSdk, change to 35
+35 ← does NOT need to match compileSdk
 AGP
 9.3.1
 Kotlin
@@ -247,7 +247,7 @@ compileSdk = 37
  — mismatch
 🟠 High
 app/build.gradle.kts
-Should both be 35
+WRONG — do not lower compileSdk. Keep compileSdk = 37 and targetSdk = 35 (see 2026-10-02 notes)
 BUG-14
 Theme XML uses 
 Theme.Material.Light.NoActionBar
@@ -381,11 +381,7 @@ Phase 0: Triage
 Next immediate actions (in order):
 Change package ID in 
 build.gradle.kts
-Fix 
-targetSdk
- = 
-compileSdk
- = 35
+Set targetSdk = 35 (done). Keep compileSdk = 37; do NOT lower it to match.
 Enable R8 (
 isMinifyEnabled = true
 , remove 
@@ -523,9 +519,39 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 
 ### Fixed: WeatherWorker refresh broadcast could be ignored
 - **Bug:** `WeatherWorker` sent `ACTION_APPWIDGET_UPDATE` to `WeatherWidget` without `AppWidgetManager.EXTRA_APPWIDGET_IDS`. `AppWidgetProvider` update broadcasts are ID-driven, so a broadcast without active widget IDs can be ignored and the periodic WorkManager job may complete without refreshing any placed weather widgets.
-- **Fix:** `WeatherWorker` now resolves active weather widget IDs with `AppWidgetManager.getAppWidgetIds(ComponentName(...))` and calls `WeatherWidget.onUpdate(...)` directly only when at least one weather widget is placed.
+- **Fix:** `WeatherWorker` now resolves active weather widget IDs with `AppWidgetManager.getAppWidgetIds(ComponentName(...))` and calls `WeatherWidget.onUpdate(...)` directly only when at least one weather widget is placed. **Superseded on 2026-10-02:** calling `onUpdate` on a hand-made receiver crashed the app; see below.
 - **Current limitation:** This does not add live weather networking. Until the Phase 7 weather data source is implemented, the widget intentionally renders a neutral unavailable state (`--°` / `WEATHER UNAVAILABLE`) instead of stale fake weather.
 
 ### Fixed: compile SDK drifted past target SDK
 - **Bug:** `compileSdk` was set to `37` while the project target was `35` and the project memory already noted SDK 35 as the intended baseline. That can break local builds on machines with only the intended Android 35 platform installed.
-- **Fix:** `compileSdk` is now aligned to `35` while keeping `targetSdk = 35`.
+- **Fix:** `compileSdk` is now aligned to `35` while keeping `targetSdk = 35`. **Reverted on 2026-10-02:** this change broke `assembleDebug`; see below.
+
+## 7. Maintenance Notes (2026-10-02)
+
+### Fixed: APK could not be built (compileSdk 35)
+- **Bug:** The 2026-08-09 change lowered `compileSdk` from 37 to 35, following an outdated note in section 1. `androidx.core 1.19.0` and `lifecycle 2.11.0` require compileSdk 37, and `activity 1.13.0` requires 36. `:app:checkDebugAarMetadata` therefore failed with 9 issues and `assembleDebug` produced no APK. `compileDebugKotlin` alone still passed, which hid the failure.
+- **Fix:** `compileSdk = 37` restored (`android-37.0` platform). `targetSdk` stays 35. compileSdk only chooses which APIs you compile against; targetSdk opts into runtime behaviour, and the two do not need to match.
+- **Verify builds with `assembleDebug`, not just `compileDebugKotlin`.**
+
+### Fixed: WeatherWorker crashed the app process
+- **Bug:** The 2026-08-09 fix called `WeatherWidget().onUpdate(...)` on a receiver the worker created itself. `onUpdate` calls `goAsync()`, which returns `null` when no broadcast is being delivered (AOSP returns `mPendingResult`, set only by the system). `pendingResult.finish()` then threw an NPE inside an unhandled `CoroutineScope(Dispatchers.IO)` coroutine. That killed the process on every worker run while a weather widget was placed, and the worker's `try/catch` could not catch it.
+- **Fix:** The rendering logic moved to `WeatherWidget.updateWidgets(...)`, a suspend function in the companion object. `onUpdate` wraps it in `goAsync()`, and `WeatherWorker` calls it directly.
+- **Rule:** Never call an `AppWidgetProvider` callback that uses `goAsync()` from outside a real broadcast.
+
+### Fixed: Battery widget never refreshed after placement
+- **Bug:** The battery widget relied on manifest-registered `ACTION_POWER_CONNECTED`/`ACTION_POWER_DISCONNECTED`. These are not on the implicit-broadcast exemption list, so they are never delivered to manifest receivers on API 26+ (our `minSdk`). With `updatePeriodMillis="0"`, the widget only redrew on placement, on boot, or after a customizer save. The "Battery widget updates on charge change ✅" claim in section 4 was false.
+- **Fix:** `widget_battery_info.xml` now uses `updatePeriodMillis="1800000"` (30 min, the platform minimum). The undeliverable intent filters and the `onReceive` branch were removed.
+- **Still open:** Instant updates on plug/unplug need a live process (for example a context-registered receiver), which is out of scope for now.
+
+### Fixed: Gallery pinning silently failed or pinned the wrong widget
+- **Bug:** `requestPinWidget` mapped `QUICK_TOGGLES`, `STEP_TRACKER` and `AUDIO_PLAYER` to the `widget/Nothing*` providers. Those are not registered in `AndroidManifest.xml`, so no pin dialog appeared. The `false` return of `requestPinAppWidget` was ignored. `QUICK_NOTE` pinned a **Clock** widget as a "fallback".
+- **Fix:** The new `widgets/WidgetProviders.kt` (`providerClassFor(type)`) is the single type→provider mapping. It is used by both gallery pinning and customizer refresh, and it uses class references instead of `Class.forName` strings. Types without a registered provider return `null`, and the gallery shows "… isn't available as a home screen widget yet". A `false` pin result now shows a toast.
+- **Still open:** Whether those four types get real providers is the backend-roadmap **B1** decision.
+
+### Fixed: "AIR" quick toggle in the in-app preview did nothing
+- **Bug:** The tile displays `isAirplaneModeOn`, but `WidgetGalleryViewModel` routed `"airplane"` to `toggleDnd()`.
+- **Fix:** Added `QuickSettingsRepository.toggleAirplaneMode()` and routed the tile to it. The preview state is still mock data, not real system toggles.
+
+### Known, not fixed here (needs a design decision)
+- The customizer saves by preset id, but providers read hard-coded ids (`clock_digital_default`, `date_default`, `battery_default`, `weather_default`). Customizing any other preset (analog/world clock, Studio-built widgets) saves fine but never changes a placed widget. This is backend-roadmap **B3** (key configs on `appWidgetId`).
+- `WeatherWorker` is enqueued only from `BootReceiver`, so after a fresh install it never runs until the first reboot. It currently has no data to fetch, so the user sees no difference. Schedule it from `WeatherWidget.onEnabled`/`onDisabled` when Phase 7 adds real weather.

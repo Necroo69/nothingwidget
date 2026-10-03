@@ -87,7 +87,7 @@ class WidgetGalleryViewModel(
             "wifi" -> quickSettingsRepository.toggleWifi()
             "bluetooth" -> quickSettingsRepository.toggleBluetooth()
             "flashlight" -> quickSettingsRepository.toggleFlashlight()
-            "airplane" -> quickSettingsRepository.toggleDnd()
+            "airplane" -> quickSettingsRepository.toggleAirplaneMode()
         }
     }
 
