@@ -2,9 +2,7 @@ package com.example.nothingwidget.widgets
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.widget.RemoteViews
 import com.example.nothingwidget.R
@@ -19,19 +17,11 @@ import kotlinx.coroutines.launch
 
 class BatteryWidget : AppWidgetProvider() {
 
+    // Refreshed by updatePeriodMillis (30 min, the platform minimum) in widget_battery_info.xml.
+    // ACTION_POWER_(DIS)CONNECTED is not delivered to manifest receivers on API 26+, so it
+    // cannot be used to refresh this widget without a running process.
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         updateWidgets(context, appWidgetManager, appWidgetIds)
-    }
-
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == Intent.ACTION_POWER_CONNECTED || intent.action == Intent.ACTION_POWER_DISCONNECTED) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(
-                ComponentName(context, BatteryWidget::class.java)
-            )
-            updateWidgets(context, appWidgetManager, appWidgetIds)
-        }
     }
 
     private fun updateWidgets(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {

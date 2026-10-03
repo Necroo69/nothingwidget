@@ -26,7 +26,8 @@ class WeatherWorker(
             )
 
             if (appWidgetIds.isNotEmpty()) {
-                WeatherWidget().onUpdate(context, appWidgetManager, appWidgetIds)
+                // Not WeatherWidget().onUpdate(): its goAsync() is null outside a broadcast.
+                WeatherWidget.updateWidgets(context, appWidgetManager, appWidgetIds)
             }
 
             Result.success()

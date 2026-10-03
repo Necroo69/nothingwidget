@@ -30,6 +30,11 @@ class QuickSettingsRepository {
         _toggleState.value = curr.copy(isDoNotDisturbOn = !curr.isDoNotDisturbOn)
     }
 
+    fun toggleAirplaneMode() {
+        val curr = _toggleState.value
+        _toggleState.value = curr.copy(isAirplaneModeOn = !curr.isAirplaneModeOn)
+    }
+
     fun cycleRingerMode() {
         val curr = _toggleState.value
         val nextMode = when (curr.ringerMode) {

@@ -88,7 +88,8 @@ functional, customizable, persistent, and reliable. The remaining six types
 - **FR-04 Architecture:** one registered provider set; no business logic in
   Composables; typed routes (already satisfied).
 - **FR-05 Play Store compliance:** R8 with correct keep rules; signed release;
-  privacy policy; `targetSdk == compileSdk` (already 35); decide namespace.
+  privacy policy; `targetSdk` 35 (Play minimum) with `compileSdk` 37 (needed by
+  AndroidX; do not lower it to match targetSdk); decide namespace.
 
 ## 6. Non-functional requirements
 

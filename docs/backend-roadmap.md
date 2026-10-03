@@ -35,6 +35,18 @@ roadmap is based on a direct inspection of the code on branch
 - **Namespace** is still `com.example.nothingwidget`; `applicationId` is
   `com.sritam.nothingwidget`.
 
+### Fixed since (2026-10-02) — see `docs/Memory.md` §7
+- `compileSdk` restored to 37 (35 broke `assembleDebug`).
+- `WeatherWorker` no longer calls `WeatherWidget().onUpdate()` (its null
+  `goAsync()` crashed the process); it calls `WeatherWidget.updateWidgets()`.
+- Gallery pinning / customizer refresh now share `widgets/providerClassFor()`.
+  The `QUICK_NOTE` → `ClockWidget` fallback is gone. Types with no registered
+  provider (`QUICK_TOGGLES`, `STEP_TRACKER`, `AUDIO_PLAYER`, `QUICK_NOTE`) show
+  a "not available yet" toast instead of failing silently. B1 still decides
+  their real providers.
+- Battery widget refreshes every 30 min (`updatePeriodMillis`). The power-
+  connected filters never fired on API 26+ and were removed.
+
 ## Phase ordering rationale
 
 Ordered by dependency, then risk:

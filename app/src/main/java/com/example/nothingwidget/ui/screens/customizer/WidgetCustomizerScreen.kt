@@ -51,6 +51,7 @@ import com.example.nothingwidget.ui.components.InteractiveWidgetView
 import com.example.nothingwidget.ui.components.NothingHeader
 import com.example.nothingwidget.ui.theme.NothingDotFontFamily
 import com.example.nothingwidget.ui.theme.NothingRed
+import com.example.nothingwidget.widgets.providerClassFor
 
 @Composable
 fun WidgetCustomizerScreen(
@@ -274,19 +275,7 @@ fun WidgetCustomizerScreen(
 }
 
 fun triggerWidgetUpdate(context: android.content.Context, type: com.example.nothingwidget.domain.model.WidgetType) {
-    val providerClass = when (type) {
-        com.example.nothingwidget.domain.model.WidgetType.DIGITAL_CLOCK, 
-        com.example.nothingwidget.domain.model.WidgetType.ANALOG_CLOCK, 
-        com.example.nothingwidget.domain.model.WidgetType.WORLD_CLOCK -> 
-            try { Class.forName("com.example.nothingwidget.widgets.ClockWidget") } catch (e: Exception) { null }
-        com.example.nothingwidget.domain.model.WidgetType.WEATHER -> 
-            try { Class.forName("com.example.nothingwidget.widgets.WeatherWidget") } catch (e: Exception) { null }
-        com.example.nothingwidget.domain.model.WidgetType.BATTERY_CIRCLE -> 
-            try { Class.forName("com.example.nothingwidget.widgets.BatteryWidget") } catch (e: Exception) { null }
-        com.example.nothingwidget.domain.model.WidgetType.DATE -> 
-            try { Class.forName("com.example.nothingwidget.widgets.DateWidget") } catch (e: Exception) { null }
-        else -> null
-    }
+    val providerClass = providerClassFor(type)
 
     if (providerClass != null) {
         val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)

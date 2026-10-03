@@ -77,7 +77,8 @@ Key changes:
 ```
 Clock  → AlarmManager.setExactAndAllowWhileIdle(next minute) → WidgetUpdateReceiver → updateAppWidget → reschedule
 Date   → AlarmManager at next local midnight → receiver → updateAppWidget → reschedule
-Battery→ BroadcastReceiver (ACTION_BATTERY_CHANGED / POWER_CONNECTED / DISCONNECTED)   ✅ event-driven
+Battery→ updatePeriodMillis 30 min (current). POWER_(DIS)CONNECTED / BATTERY_CHANGED are NOT
+         delivered to manifest receivers on API 26+; instant updates need a live-process receiver
 Weather→ WorkManager PeriodicWorkRequest (≥15 min) → OpenMeteo → Room → updateAppWidget
 Boot   → BootReceiver re-arms all alarms + enqueues WeatherWorker
 ```

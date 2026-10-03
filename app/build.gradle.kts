@@ -9,7 +9,8 @@ plugins {
 
 android {
     namespace = "com.example.nothingwidget"
-    compileSdk = 35
+    // core 1.19 / lifecycle 2.11 require compileSdk 37; compileSdk need not equal targetSdk.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.sritam.nothingwidget"
