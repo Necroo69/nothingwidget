@@ -47,6 +47,20 @@ roadmap is based on a direct inspection of the code on branch
 - Battery widget refreshes every 30 min (`updatePeriodMillis`). The power-
   connected filters never fired on API 26+ and were removed.
 
+### B1 done (2026-10-08)
+- Decision: keep `widgets/`, not `widget/` as recommended below. By 2026-10-08
+  `widget/` was the dead set: unregistered, never referenced, with placeholder
+  content (its battery provider hardcoded "88%"). `widgets/` was the registered
+  set that the 2026-10-02 fixes had repaired and verified.
+- Deleted the `widget/` package, its six `nothing_*_widget_info.xml` files, its
+  five layouts, and the unreferenced duplicate `widget_clock.xml`. One layout and
+  one info XML per widget remain.
+- `QUICK_TOGGLES`, `STEP_TRACKER`, `AUDIO_PLAYER` and `QUICK_NOTE` stay
+  in-app only. `providerClassFor()` returns `null` for them, and their gallery
+  cards show an "IN-APP ONLY" label instead of an "ADD TO HOME" button. Building
+  their widgets is future work (Steps/Audio need real data sources first).
+- B2 and B3 are unblocked.
+
 ## Phase ordering rationale
 
 Ordered by dependency, then risk:

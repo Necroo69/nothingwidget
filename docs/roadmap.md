@@ -153,8 +153,9 @@ survives reboot, and handles its permission being denied — the same bar as v1.
 
 ## Decisions still open (flagged, not guessed)
 
-1. **Which provider set survives B1** — recommend the `widget/` (`Nothing*`) set
-   (renders content), porting `DATE` and adding `QUICK_NOTE`.
+1. ~~**Which provider set survives B1**~~ — decided 2026-10-08: keep `widgets/`
+   (the registered, tested set) and delete `widget/` (unregistered, placeholder
+   data). Quick Toggles / Steps / Audio / Quick Note stay in-app only for now.
 2. **Exact-alarm policy on Android 12+** — exact for clock (needs
    `USE_EXACT_ALARM`/`SCHEDULE_EXACT_ALARM`), inexact fallback elsewhere.
 3. **Room migration shape for `appWidgetId`** — column on `WidgetConfigEntity`

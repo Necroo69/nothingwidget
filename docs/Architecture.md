@@ -29,10 +29,9 @@ com.example.nothingwidget/              # namespace still com.example; appId = c
 │   ├── components/ (DotMatrixText, GlyphVisualizerCanvas, NothingGlassCard, …)
 │   ├── theme/ (Color, Theme, Type)
 │   └── screens/ (gallery, customizer, settings, glyph, studio)  # each with a ViewModel
-├── widget/                             # 6 providers that render content — NOT registered
-│   └── Nothing{Audio,Battery,Clock,QuickSettings,Step,Weather}WidgetProvider.kt
-├── widgets/                            # 4 providers — REGISTERED in manifest
-│   └── {Clock,Date,Battery,Weather}Widget.kt   # ClockWidget sets COLOR only
+├── widgets/                            # the only provider package (B1 done 2026-10-08)
+│   ├── {Clock,Date,Battery,Weather}Widget.kt   # all REGISTERED; ClockWidget time via TextClock XML
+│   └── WidgetProviders.kt              # providerClassFor(type): WidgetType → provider, or null
 └── worker/WeatherWorker.kt             # WorkManager periodic (15 min)
 ```
 
@@ -45,11 +44,11 @@ real and solid — the gaps are in the widget engine, not the app architecture.
 |---|---|
 | Hilt DI, Room, per-screen ViewModels, typed nav | ✅ |
 | Gallery / customizer / settings / glyph / studio screens render | ✅ |
-| Battery widget shows % and reacts to charge change | ✅ |
+| Battery widget shows % | ✅ refreshes every 30 min; no instant plug/unplug update |
 | Registered clock widget shows **time content** | ❌ sets color only; time via `TextClock` XML |
 | App-driven per-minute / midnight updates (AlarmManager) | ❌ none exists |
 | Widgets survive reboot with correct data | ⚠ BootReceiver pings once; no alarm re-arm |
-| The content-rendering `widget/` providers are reachable | ❌ not registered in manifest |
+| One provider set, all registered | ✅ B1 done; Quick Toggles / Steps / Audio / Quick Note are in-app only |
 | Multi-instance independent configs | ❌ keyed by string id, not `appWidgetId` |
 | Minified release build runs | ❌ R8 on, no keep rules / `proguardFiles` |
 
@@ -64,8 +63,8 @@ Presentation (Compose) → ViewModel (StateFlow) → Repository (Room / system /
 ```
 
 Key changes:
-1. **One provider set** (recommend `widget/` `Nothing*`), all registered, a
-   provider per shipped `WidgetType`; delete the other set. *(B1)*
+1. ~~**One provider set**~~ — done (2026-10-08): `widgets/` kept, `widget/` deleted.
+   Types without a provider are labelled in-app only. *(B1)*
 2. **Update engine:** `WidgetUpdateScheduler` + `WidgetUpdateReceiver` using
    `AlarmManager.setExactAndAllowWhileIdle`, wired into `onEnabled`/`onUpdate`/
    `BootReceiver`, re-armed after reboot, Doze-tolerant. *(B2)*

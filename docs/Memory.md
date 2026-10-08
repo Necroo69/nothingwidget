@@ -546,7 +546,7 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 ### Fixed: Gallery pinning silently failed or pinned the wrong widget
 - **Bug:** `requestPinWidget` mapped `QUICK_TOGGLES`, `STEP_TRACKER` and `AUDIO_PLAYER` to the `widget/Nothing*` providers. Those are not registered in `AndroidManifest.xml`, so no pin dialog appeared. The `false` return of `requestPinAppWidget` was ignored. `QUICK_NOTE` pinned a **Clock** widget as a "fallback".
 - **Fix:** The new `widgets/WidgetProviders.kt` (`providerClassFor(type)`) is the single type→provider mapping. It is used by both gallery pinning and customizer refresh, and it uses class references instead of `Class.forName` strings. Types without a registered provider return `null`, and the gallery shows "… isn't available as a home screen widget yet". A `false` pin result now shows a toast.
-- **Still open:** Whether those four types get real providers is the backend-roadmap **B1** decision.
+- **Update (2026-10-08, B1):** those four stay in-app only; their cards now show "IN-APP ONLY" instead of an "ADD TO HOME" button.
 
 ### Fixed: "AIR" quick toggle in the in-app preview did nothing
 - **Bug:** The tile displays `isAirplaneModeOn`, but `WidgetGalleryViewModel` routed `"airplane"` to `toggleDnd()`.
@@ -556,6 +556,12 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 - **Bug:** The gallery card read the level once, when `BatteryRepository` was constructed, and nothing ever called `updateBatteryState()`. The customizer and Studio previews passed no battery data at all, so they showed the hardcoded `BatteryInfo()` defaults (84% / 18h). On an emulator, the customizer showed 84% while the device was at 42–77%.
 - **Fix:** `BatteryRepository.batteryState` is now a `callbackFlow` backed by a context-registered `ACTION_BATTERY_CHANGED` receiver. The sticky broadcast delivers the current value on registration, and `distinctUntilChanged()` drops voltage/temperature-only updates. The gallery, customizer and Studio ViewModels collect it with `stateIn(WhileSubscribed(5000))`, seeded from `currentBatteryInfo()` so the fake 84% never flashes.
 - **Verified (emulator):** all three previews follow `dumpsys battery set level` live. One receiver is registered while a preview is visible, and none 8 s after going home. The home-screen `BatteryWidget` still uses `getBatteryInfoSync()`.
+
+### Done: B1 widget package consolidation (2026-10-08)
+- **Problem:** Two provider packages existed. `widget/` (six `Nothing*WidgetProvider`s) was never registered or referenced, and showed placeholder data (battery hardcoded "88%"). `widgets/` was the registered set.
+- **Decision:** Keep `widgets/` (the roadmap's older advice to keep `widget/` predated the 2026-10-02 fixes). Quick Toggles, Step Tracker, Audio Player and Quick Note stay in-app only.
+- **Change:** Deleted `widget/`, its six `nothing_*_widget_info.xml`, its five layouts and the unreferenced `widget_clock.xml`. Gallery cards whose type has no provider (`providerClassFor() == null`) show a muted "IN-APP ONLY" label instead of the red "ADD TO HOME" button.
+- **Verified (emulator):** the system lists exactly 4 providers (Clock, Date, Battery, Weather). Already-placed Weather and Battery widgets survived the update. The six pinnable cards show ADD TO HOME and the four others show IN-APP ONLY. Pinning Date opens the system pin dialog.
 
 ### Known, not fixed here (needs a design decision)
 - The customizer saves by preset id, but providers read hard-coded ids (`clock_digital_default`, `date_default`, `battery_default`, `weather_default`). Customizing any other preset (analog/world clock, Studio-built widgets) saves fine but never changes a placed widget. This is backend-roadmap **B3** (key configs on `appWidgetId`).
