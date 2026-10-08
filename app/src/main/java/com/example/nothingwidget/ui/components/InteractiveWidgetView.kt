@@ -54,6 +54,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,7 +68,6 @@ import com.example.nothingwidget.ui.theme.NothingDotFontFamily
 import com.example.nothingwidget.ui.theme.NothingRed
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -122,9 +122,10 @@ fun InteractiveWidgetView(
 
 @Composable
 fun DigitalClockWidget(accentColor: Color, subtitle: String) {
-    val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-    val seconds = SimpleDateFormat(":ss", Locale.getDefault()).format(Date())
-    val currentDate = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(Date()).uppercase()
+    val locale = LocalConfiguration.current.locales[0]
+    val currentTime = SimpleDateFormat("HH:mm", locale).format(Date())
+    val seconds = SimpleDateFormat(":ss", locale).format(Date())
+    val currentDate = SimpleDateFormat("EEE, MMM d", locale).format(Date()).uppercase()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -181,9 +182,10 @@ fun DigitalClockWidget(accentColor: Color, subtitle: String) {
 
 @Composable
 fun DateWidgetView(accentColor: Color, subtitle: String) {
-    val currentDay = SimpleDateFormat("dd", Locale.getDefault()).format(Date())
-    val currentMonth = SimpleDateFormat("MMM", Locale.getDefault()).format(Date()).uppercase()
-    val dayOfWeek = SimpleDateFormat("EEEE", Locale.getDefault()).format(Date()).uppercase()
+    val locale = LocalConfiguration.current.locales[0]
+    val currentDay = SimpleDateFormat("dd", locale).format(Date())
+    val currentMonth = SimpleDateFormat("MMM", locale).format(Date()).uppercase()
+    val dayOfWeek = SimpleDateFormat("EEEE", locale).format(Date()).uppercase()
 
     Column(
         modifier = Modifier.fillMaxSize(),
