@@ -35,18 +35,18 @@ world clock, weather, battery circle, step tracker, quick toggles, audio player,
 quick note, date.
 
 **Known broken / incomplete (verified in code)**
-- **Two provider packages coexist.** `widget/` has 6 `Nothing*WidgetProvider`s
-  that render real content but are **not registered** in the manifest. `widgets/`
-  has 4 providers that **are** registered; its `ClockWidget` only sets text
-  *color* and relies on `TextClock` XML for the time.
+- ~~**Two provider packages coexist.**~~ Fixed 2026-10-08 (B1): only `widgets/`
+  remains (Clock, Date, Battery, Weather, all registered). `ClockWidget` relies on
+  `TextClock` XML for the time.
 - **No AlarmManager / update scheduler exists.** `SCHEDULE_EXACT_ALARM` is
   declared but unused. Clock/date have no app-driven tick.
 - **Release build unsafe.** `isMinifyEnabled = true` with no `proguard-rules.pro`
   and no `proguardFiles` — Moshi/Retrofit/Room/Hilt likely crash under R8.
 - **Configs keyed by string id**, not `appWidgetId` — no independent
   multi-instance configs.
-- **Coverage gaps.** `QUICK_NOTE` has no provider in either package; several types
-  can't actually pin.
+- **Coverage gaps.** Quick Toggles, Step Tracker, Audio Player and Quick Note
+  have no home-screen widget. Their gallery cards say "IN-APP ONLY" instead of
+  offering a pin (B1 decision, 2026-10-08).
 - **No onboarding, no real tests.** Namespace is still `com.example.nothingwidget`
   (applicationId is correctly `com.sritam.nothingwidget`).
 

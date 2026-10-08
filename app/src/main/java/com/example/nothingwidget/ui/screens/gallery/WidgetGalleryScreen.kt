@@ -306,19 +306,31 @@ fun GalleryWidgetCardItem(
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(NothingRed)
-                        .clickable { onPinClick() }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                if (providerClassFor(widget.type) != null) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(NothingRed)
+                            .clickable { onPinClick() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Default.PushPin, contentDescription = "Pin", modifier = Modifier.size(12.dp), tint = androidx.compose.ui.graphics.Color.White)
-                        Text("ADD TO HOME", fontSize = 10.sp, fontFamily = NothingDotFontFamily, color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.PushPin, contentDescription = "Pin", modifier = Modifier.size(12.dp), tint = androidx.compose.ui.graphics.Color.White)
+                            Text("ADD TO HOME", fontSize = 10.sp, fontFamily = NothingDotFontFamily, color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else {
+                    // No home-screen provider for this type yet; don't offer a pin that can't work.
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text("IN-APP ONLY", fontSize = 10.sp, fontFamily = NothingDotFontFamily, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
