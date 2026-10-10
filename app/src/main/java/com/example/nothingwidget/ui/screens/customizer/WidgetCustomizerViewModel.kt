@@ -21,6 +21,10 @@ class WidgetCustomizerViewModel(
     private val _config = MutableStateFlow<NothingWidgetConfig?>(null)
     val config: StateFlow<NothingWidgetConfig?> = _config.asStateFlow()
 
+    // The placed home-screen widget being edited, or null when editing a gallery template.
+    private val _placedWidgetId = MutableStateFlow<Int?>(null)
+    val placedWidgetId: StateFlow<Int?> = _placedWidgetId.asStateFlow()
+
     val batteryInfo: StateFlow<BatteryInfo> = batteryRepository.batteryState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -28,9 +32,18 @@ class WidgetCustomizerViewModel(
     )
 
     fun loadWidget(widgetId: String) {
+        _placedWidgetId.value = null
         viewModelScope.launch {
             val loaded = widgetRepository.getConfigById(widgetId)
             _config.value = loaded
+        }
+    }
+
+    /** Edit one placed widget. [fallbackPresetId] is its provider's default template. */
+    fun loadPlacedWidget(appWidgetId: Int, fallbackPresetId: String) {
+        _placedWidgetId.value = appWidgetId
+        viewModelScope.launch {
+            _config.value = widgetRepository.getConfigForWidget(appWidgetId, fallbackPresetId)
         }
     }
 
@@ -66,8 +79,14 @@ class WidgetCustomizerViewModel(
 
     fun saveConfig(onSuccess: () -> Unit) {
         val current = _config.value ?: return
+        val placedWidgetId = _placedWidgetId.value
         viewModelScope.launch {
-            widgetRepository.saveConfig(current)
+            if (placedWidgetId != null) {
+                // current.id is the widget's template; it's the fallback if no instance row exists yet.
+                widgetRepository.saveWidgetConfig(placedWidgetId, current.id, current)
+            } else {
+                widgetRepository.saveConfig(current)
+            }
             onSuccess()
         }
     }

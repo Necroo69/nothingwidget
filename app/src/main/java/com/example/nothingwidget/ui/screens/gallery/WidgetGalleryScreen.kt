@@ -59,6 +59,7 @@ import com.example.nothingwidget.ui.components.NothingGlassCard
 import com.example.nothingwidget.ui.components.NothingHeader
 import com.example.nothingwidget.ui.theme.NothingDotFontFamily
 import com.example.nothingwidget.ui.theme.NothingRed
+import com.example.nothingwidget.widgets.WidgetPinnedReceiver
 import com.example.nothingwidget.widgets.providerClassFor
 
 @Composable
@@ -365,7 +366,7 @@ fun requestPinWidget(context: Context, config: NothingWidgetConfig) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val myProvider = ComponentName(context, providerClass)
         val pinRequested = appWidgetManager.isRequestPinAppWidgetSupported &&
-            appWidgetManager.requestPinAppWidget(myProvider, null, null)
+            appWidgetManager.requestPinAppWidget(myProvider, null, WidgetPinnedReceiver.successCallback(context, config.id))
         if (!pinRequested) {
             Toast.makeText(context, "Auto-pin not supported on this launcher", Toast.LENGTH_SHORT).show()
         }

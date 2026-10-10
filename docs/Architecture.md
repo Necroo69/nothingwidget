@@ -49,7 +49,7 @@ real and solid — the gaps are in the widget engine, not the app architecture.
 | Per-minute / midnight updates | ✅ launcher-driven `TextClock`, no AlarmManager needed (B2, verified 2026-10-10) |
 | Widgets survive reboot, Doze, app update with correct data | ✅ verified 2026-10-10 |
 | One provider set, all registered | ✅ B1 done; Quick Toggles / Steps / Audio / Quick Note are in-app only |
-| Multi-instance independent configs | ❌ keyed by string id, not `appWidgetId` |
+| Multi-instance independent configs | ✅ `widget_instances` keyed by `appWidgetId` (B3, 2026-10-11) |
 | Minified release build runs | ❌ R8 on, no keep rules / `proguardFiles` |
 
 ## 2. Target architecture (to-be)
@@ -69,7 +69,8 @@ Key changes:
    date are `TextClock`s that the launcher ticks itself. Verified for minute tick,
    midnight rollover, timezone change, forced Doze, reboot and app update. The
    unused `SCHEDULE_EXACT_ALARM` permission was removed. *(B2)*
-3. **Instance-scoped config:** add `appWidgetId` keying (+ Room migration). *(B3)*
+3. ~~**Instance-scoped config**~~ — done (2026-10-11): `widget_instances` table,
+   tap-to-edit, gallery edits flow to uncustomized widgets. *(B3)*
 4. **Release safety:** `proguard-rules.pro` keep rules + `proguardFiles`. *(B4)*
 
 ## 3. Widget update architecture
@@ -95,10 +96,37 @@ example a "next alarm in 3h" label); prefer an inexact alarm then.
 
 ## 4. Persistence (current)
 
-**Room**, table `widget_configs`, primary key `id: String` (e.g.
-`clock_digital_default`). `WidgetRepository` merges built-in presets with saved
-rows via `associateBy { it.id }`. `updateIntervalMinutes` exists on the entity but
-no scheduler reads it. **Target:** add `appWidgetId` so instances are independent.
+**Room** `nothing_widgets.db`, schema version 2.
+
+- `widget_configs` — gallery **templates**, primary key `id: String` (e.g.
+  `clock_digital_default`). `WidgetRepository` merges built-in presets with saved
+  rows via `associateBy { it.id }`. `updateIntervalMinutes` exists but nothing
+  reads it.
+- `widget_instances` (v2, B3) — one row per **placed** widget, primary key
+  `appWidgetId`: `presetId` (the template it came from), `isCustomized`, and its
+  own style columns.
+
+How a placed widget gets its config (`WidgetRepository.getConfigForWidget`):
+
+```
+row = widget_instances[appWidgetId]
+template = widget_configs[row.presetId] ?: provider's DEFAULT_PRESET_ID
+config = row.isCustomized ? template + row's style : template
+```
+
+- **Pinned from the gallery:** `requestPinAppWidget`'s success callback
+  (`WidgetPinnedReceiver`) inserts the row with `isCustomized = false`.
+- **Added from the launcher picker, or placed before B3:** no row, so the provider's
+  default template is used.
+- **Tap a placed widget:** opens `MainActivity` with `ACTION_EDIT_WIDGET` and the
+  customizer edits that widget only. Saving sets `isCustomized = true`.
+- **Gallery EDIT:** saves the template. Every widget with `isCustomized = false`
+  follows it.
+- **Removed / restored:** `NothingWidgetProvider.onDeleted` deletes the row, and
+  `onRestored` remaps ids after a backup restore.
+- Migration 1→2 only creates the table (no data loss).
+  `fallbackToDestructiveMigration()` is still set for unknown version jumps;
+  remove it before launch so a missing migration fails loudly.
 
 ## 5. Testing strategy
 
@@ -113,5 +141,5 @@ round-trip; instrumented tests for gallery + customizer; manual device matrix
 New widget type → add a provider in the canonical package, register in the
 manifest, add a widget-info XML + layout, extend `WidgetType` and presets. More
 options → extend `NothingWidgetConfig` + the customizer. Multiple instances →
-`appWidgetId` keying (B3). Tablets → `WindowSizeClass`. Localization → move
+done via `widget_instances` (B3). Tablets → `WindowSizeClass`. Localization → move
 decorative strings to `strings.xml`.

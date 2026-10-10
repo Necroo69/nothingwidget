@@ -564,7 +564,7 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 - **Verified (emulator):** the system lists exactly 4 providers (Clock, Date, Battery, Weather). Already-placed Weather and Battery widgets survived the update. The six pinnable cards show ADD TO HOME and the four others show IN-APP ONLY. Pinning Date opens the system pin dialog.
 
 ### Known, not fixed here (needs a design decision)
-- The customizer saves by preset id, but providers read hard-coded ids (`clock_digital_default`, `date_default`, `battery_default`, `weather_default`). Customizing any other preset (analog/world clock, Studio-built widgets) saves fine but never changes a placed widget. This is backend-roadmap **B3** (key configs on `appWidgetId`).
+- ~~The customizer saves by preset id, but providers read hard-coded ids.~~ Fixed 2026-10-11 by B3, see §9.
 - `WeatherWorker` is enqueued only from `BootReceiver`, so after a fresh install it never runs until the first reboot. It currently has no data to fetch, so the user sees no difference. Schedule it from `WeatherWidget.onEnabled`/`onDisabled` when Phase 7 adds real weather.
 
 ## 8. Maintenance Notes (2026-10-10)
@@ -584,3 +584,21 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 - User decision: keep the 30-min `updatePeriodMillis` (no extra background work). `MainActivity.onStart` now calls `requestWidgetUpdate(this, BATTERY_CIRCLE)`.
 - **Verified (emulator):** `dumpsys battery set level 30` → widget still showed 62% → open app → 30%.
 - **Testing tip:** after `cmd alarm set-time`, the next `TIME_TICK` can lag by up to ~30 s because the tick was scheduled against the old wall clock. Wait a full minute before calling a rollover failed. Re-enable `settings put global auto_time 1` afterwards.
+
+## 9. Maintenance Notes (2026-10-11)
+
+### Done: B3 per-widget configs
+- **Problem:** Providers read hard-coded template ids, so every placed clock looked the same. Customizing the analog/world clock or a Studio widget never reached the home screen.
+- **Decisions (user):** separate `widget_instances` table; tap a placed widget to edit just that one; gallery EDIT updates the template plus placed widgets not customized on their own.
+- **Change:**
+  - New `WidgetInstanceEntity`/`WidgetInstanceDao`. Room v2 with `MIGRATION_1_2`, which only creates the table.
+  - `WidgetRepository.getConfigForWidget()` resolves instance row → template → provider default.
+  - `WidgetPinnedReceiver` (pin success callback) links a pinned id to its template.
+  - All four providers extend `NothingWidgetProvider` (`onDeleted`/`onRestored`), render per id, and open the customizer on tap (`ACTION_EDIT_WIDGET`).
+  - The customizer shows which mode it is in, and its button reads "SAVE THIS WIDGET" in per-widget mode.
+- **Verified (emulator):** lossless v1→v2 migration; two clocks with different colors; tap-edit changes one; template edit changes only the uncustomized ones; survives reboot; removing a widget deletes its row; a newly pinned Date renders immediately. Full table in `backend-roadmap.md` "B3 done".
+- **Gotchas:**
+  - `am force-stop` makes the launcher show its "loading" placeholder for the app's widgets until the app runs again. Don't mistake it for a render failure.
+  - `adb shell am broadcast` of `APPWIDGET_UPDATE` is refused (protected broadcast). To force a redraw, use the app (customizer save, 24h toggle) or reboot.
+  - The pin callback must be a **mutable** PendingIntent (FLAG_MUTABLE on API 31+), or the system cannot add EXTRA_APPWIDGET_ID.
+- **Still open:** only the accent color reaches home-screen widgets (roadmap P5). `fallbackToDestructiveMigration()` should be removed before launch.
