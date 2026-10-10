@@ -18,7 +18,9 @@ data class SettingsUiState(
 )
 
 class SettingsViewModel(
-    private val appPreferencesRepository: AppPreferencesRepository
+    private val appPreferencesRepository: AppPreferencesRepository,
+    // Redraws placed clock widgets; called after the 12/24-hour setting has been saved.
+    private val refreshClockWidgets: () -> Unit = {}
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -67,6 +69,7 @@ class SettingsViewModel(
     fun toggle24h() {
         viewModelScope.launch {
             appPreferencesRepository.set24HourClock(!_state.value.is24HourClock)
+            refreshClockWidgets()
         }
     }
 

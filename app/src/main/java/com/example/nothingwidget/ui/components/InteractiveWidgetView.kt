@@ -42,6 +42,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +67,7 @@ import com.example.nothingwidget.domain.model.WeatherInfo
 import com.example.nothingwidget.domain.model.WidgetType
 import com.example.nothingwidget.ui.theme.NothingDotFontFamily
 import com.example.nothingwidget.ui.theme.NothingRed
+import com.example.nothingwidget.widgets.ClockWidget
 import java.text.SimpleDateFormat
 import java.util.Date
 import kotlin.math.cos
@@ -120,10 +122,13 @@ fun InteractiveWidgetView(
     }
 }
 
+/** The app's 24-hour clock setting, provided by MainActivity. Previews match the placed widget. */
+val LocalIs24HourClock = compositionLocalOf { true }
+
 @Composable
 fun DigitalClockWidget(accentColor: Color, subtitle: String) {
     val locale = LocalConfiguration.current.locales[0]
-    val currentTime = SimpleDateFormat("HH:mm", locale).format(Date())
+    val currentTime = SimpleDateFormat(ClockWidget.timePattern(LocalIs24HourClock.current), locale).format(Date())
     val seconds = SimpleDateFormat(":ss", locale).format(Date())
     val currentDate = SimpleDateFormat("EEE, MMM d", locale).format(Date()).uppercase()
 

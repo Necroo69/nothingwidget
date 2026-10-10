@@ -566,3 +566,21 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 ### Known, not fixed here (needs a design decision)
 - The customizer saves by preset id, but providers read hard-coded ids (`clock_digital_default`, `date_default`, `battery_default`, `weather_default`). Customizing any other preset (analog/world clock, Studio-built widgets) saves fine but never changes a placed widget. This is backend-roadmap **B3** (key configs on `appWidgetId`).
 - `WeatherWorker` is enqueued only from `BootReceiver`, so after a fresh install it never runs until the first reboot. It currently has no data to fetch, so the user sees no difference. Schedule it from `WeatherWidget.onEnabled`/`onDisabled` when Phase 7 adds real weather.
+
+## 8. Maintenance Notes (2026-10-10)
+
+### Done: B2 reliable updates — verified, no AlarmManager
+- **Finding:** Earlier docs said the clock "relies on `TextClock` XML" as if that were a gap, and planned a per-minute `setExactAndAllowWhileIdle` alarm. Testing showed `TextClock` already meets every B2 acceptance criterion. The launcher re-formats it on each minute tick and on time, timezone and date changes. The app process does not need to run.
+- **Verified (Pixel_10_Pro emulator, API 37, no code changes):** minute tick 23:00 → 23:01; midnight rollover via `cmd alarm set-time` (SAT · 10 → SUN · 11 on both clock and date widgets); `cmd alarm set-timezone UTC` applied immediately; correct time after 2 min of `deviceidle force-idle`; all four widgets correct, with accent colors, after `adb reboot` without opening the app; content kept after `adb install -r` (the system sends `APPWIDGET_UPDATE` to `ClockWidget` after a package update).
+- **Decision:** no alarm scheduler. Exact per-minute alarms cost battery, `SCHEDULE_EXACT_ALARM` is denied by default on Android 14+, and Play restricts `USE_EXACT_ALARM` to alarm/calendar apps. `Rules.md` RULE-W2 now requires `TextClock` instead.
+- **Change:** removed the unused `SCHEDULE_EXACT_ALARM` permission from the manifest. Added comments to `ClockWidget`/`DateWidget`.
+
+### Fixed: the 24-HOUR FORMAT setting did nothing
+- **Bug:** Settings saved `is_24_hour_clock`, but nothing read it. The widget layout and the `DigitalClockWidget` preview both hard-coded `HH:mm`.
+- **Fix:** `ClockWidget` reads the setting and sets both `format12Hour` and `format24Hour` (via `RemoteViews.setCharSequence`) to `ClockWidget.timePattern()`. Setting both is required, because TextClock otherwise picks a format from the *system* 12/24h setting. `SettingsViewModel.toggle24h()` calls `requestWidgetUpdate(…, DIGITAL_CLOCK)` after the DataStore write. `MainActivity` provides `LocalIs24HourClock` to the previews. 12-hour is `h:mm` with no AM/PM (user decision).
+- **Verified (emulator):** toggle off → placed widget shows 11:54 and the gallery preview 11:55; toggle on → both show 23:55.
+
+### Changed: battery widget refreshes when the app opens
+- User decision: keep the 30-min `updatePeriodMillis` (no extra background work). `MainActivity.onStart` now calls `requestWidgetUpdate(this, BATTERY_CIRCLE)`.
+- **Verified (emulator):** `dumpsys battery set level 30` → widget still showed 62% → open app → 30%.
+- **Testing tip:** after `cmd alarm set-time`, the next `TIME_TICK` can lag by up to ~30 s because the tick was scheduled against the old wall clock. Wait a full minute before calling a rollover failed. Re-enable `settings put global auto_time 1` afterwards.
