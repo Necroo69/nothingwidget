@@ -2,13 +2,18 @@ package com.example.nothingwidget.data.repository
 
 import com.example.nothingwidget.data.local.WidgetConfigDao
 import com.example.nothingwidget.data.local.WidgetConfigEntity
+import com.example.nothingwidget.data.local.WidgetInstanceDao
+import com.example.nothingwidget.data.local.WidgetInstanceEntity
 import com.example.nothingwidget.domain.model.NothingWidgetConfig
 import com.example.nothingwidget.domain.model.WidgetSize
 import com.example.nothingwidget.domain.model.WidgetType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class WidgetRepository(private val dao: WidgetConfigDao) {
+class WidgetRepository(
+    private val dao: WidgetConfigDao,
+    private val instanceDao: WidgetInstanceDao
+) {
 
     val allConfigs: Flow<List<NothingWidgetConfig>> = dao.getAllWidgetConfigs().map { entities ->
         val savedMap = entities.associateBy { it.id }
@@ -42,6 +47,40 @@ class WidgetRepository(private val dao: WidgetConfigDao) {
 
     suspend fun deleteConfig(id: String) {
         dao.deleteWidgetConfig(id)
+    }
+
+    /**
+     * The config a placed home-screen widget renders: its template, with the widget's own style
+     * on top if it was customized individually. Widgets with no instance row (added from the
+     * launcher's picker, or placed before B3) and widgets whose template was deleted use
+     * [fallbackPresetId], the provider's default template.
+     */
+    suspend fun getConfigForWidget(appWidgetId: Int, fallbackPresetId: String): NothingWidgetConfig? {
+        val instance = instanceDao.getInstance(appWidgetId)
+        val preset = instance?.let { getConfigById(it.presetId) } ?: getConfigById(fallbackPresetId)
+            ?: return null
+        return instance?.applyTo(preset) ?: preset
+    }
+
+    /** Records that [appWidgetId] was placed from template [presetId] and should follow it. */
+    suspend fun linkWidgetToPreset(appWidgetId: Int, presetId: String) {
+        val preset = getConfigById(presetId) ?: return
+        instanceDao.upsertInstance(WidgetInstanceEntity.from(appWidgetId, presetId, isCustomized = false, style = preset))
+    }
+
+    /** Saves [config]'s style for this one placed widget. Its template stops affecting it. */
+    suspend fun saveWidgetConfig(appWidgetId: Int, fallbackPresetId: String, config: NothingWidgetConfig) {
+        val presetId = instanceDao.getInstance(appWidgetId)?.presetId ?: fallbackPresetId
+        instanceDao.upsertInstance(WidgetInstanceEntity.from(appWidgetId, presetId, isCustomized = true, style = config))
+    }
+
+    suspend fun deleteWidgets(appWidgetIds: IntArray) {
+        instanceDao.deleteInstances(appWidgetIds.toList())
+    }
+
+    /** Called after a backup restore, when the launcher hands out new ids for restored widgets. */
+    suspend fun remapWidgets(oldIds: IntArray, newIds: IntArray) {
+        oldIds.zip(newIds).forEach { (old, new) -> instanceDao.remapInstance(old, new) }
     }
 
     fun getDefaultPresetWidgets(): List<NothingWidgetConfig> {

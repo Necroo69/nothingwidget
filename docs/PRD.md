@@ -43,8 +43,8 @@ quick note, date.
   `SCHEDULE_EXACT_ALARM` permission was removed.
 - **Release build unsafe.** `isMinifyEnabled = true` with no `proguard-rules.pro`
   and no `proguardFiles` — Moshi/Retrofit/Room/Hilt likely crash under R8.
-- **Configs keyed by string id**, not `appWidgetId` — no independent
-  multi-instance configs.
+- ~~**Configs keyed by string id**~~ Fixed 2026-10-11 (B3): each placed widget
+  has its own config, keyed by `appWidgetId`.
 - **Coverage gaps.** Quick Toggles, Step Tracker, Audio Player and Quick Note
   have no home-screen widget. Their gallery cards say "IN-APP ONLY" instead of
   offering a pin (B1 decision, 2026-10-08).

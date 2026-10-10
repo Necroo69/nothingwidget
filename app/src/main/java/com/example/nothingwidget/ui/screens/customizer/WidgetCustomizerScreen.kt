@@ -56,11 +56,16 @@ import com.example.nothingwidget.widgets.requestWidgetUpdate
 @Composable
 fun WidgetCustomizerScreen(
     widgetId: String,
+    appWidgetId: Int,
     viewModel: WidgetCustomizerViewModel,
     onBackClick: () -> Unit
 ) {
-    LaunchedEffect(widgetId) {
-        viewModel.loadWidget(widgetId)
+    LaunchedEffect(widgetId, appWidgetId) {
+        if (appWidgetId != android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID) {
+            viewModel.loadPlacedWidget(appWidgetId, widgetId)
+        } else {
+            viewModel.loadWidget(widgetId)
+        }
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -68,6 +73,7 @@ fun WidgetCustomizerScreen(
     val configState by viewModel.config.collectAsStateWithLifecycle()
     val config = configState
     val batteryInfo by viewModel.batteryInfo.collectAsStateWithLifecycle()
+    val placedWidgetId by viewModel.placedWidgetId.collectAsStateWithLifecycle()
 
     val colorOptions = listOf(
         "#D71921" to "Nothing Red",
@@ -110,6 +116,17 @@ fun WidgetCustomizerScreen(
                     .testTag("widget_customizer_scroll"),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // What a save will change: one placed widget, or a gallery template.
+                Text(
+                    text = if (placedWidgetId != null) {
+                        "Editing this home-screen widget only. Gallery changes no longer apply to it."
+                    } else {
+                        "Applies to new widgets, and to placed widgets you haven't customized on their own. Tap a widget on your home screen to edit just that one."
+                    },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp
+                )
+
                 // Live Interactive Preview Header
                 Text(
                     text = "LIVE INTERACTIVE PREVIEW",
@@ -266,7 +283,7 @@ fun WidgetCustomizerScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Save, contentDescription = null)
-                        Text("SAVE WIDGET PRESET", fontSize = 14.sp, fontFamily = NothingDotFontFamily, fontWeight = FontWeight.Bold)
+                        Text(if (placedWidgetId != null) "SAVE THIS WIDGET" else "SAVE WIDGET PRESET", fontSize = 14.sp, fontFamily = NothingDotFontFamily, fontWeight = FontWeight.Bold)
                     }
                 }
 

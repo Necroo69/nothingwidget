@@ -1,6 +1,8 @@
 package com.example.nothingwidget.ui.navigation
 
+import android.appwidget.AppWidgetManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -30,11 +32,15 @@ import com.example.nothingwidget.ui.screens.studio.WidgetStudioViewModel
 import com.example.nothingwidget.widgets.requestWidgetUpdate
 
 @Composable
-fun AppNavGraph(navController: NavHostController) {
+fun AppNavGraph(
+    navController: NavHostController,
+    // Set when the app was opened by tapping a placed widget: (appWidgetId, fallback template id).
+    editPlacedWidget: Pair<Int, String>? = null
+) {
     val context = LocalContext.current
 
     val db = remember { AppDatabase.getInstance(context) }
-    val widgetRepo = remember { WidgetRepository(db.widgetConfigDao()) }
+    val widgetRepo = remember { WidgetRepository(db.widgetConfigDao(), db.widgetInstanceDao()) }
     val weatherRepo = remember { WeatherRepository() }
     val batteryRepo = remember { BatteryRepository(context) }
     val quickSettingsRepo = remember { QuickSettingsRepository() }
@@ -78,11 +84,19 @@ fun AppNavGraph(navController: NavHostController) {
 
         composable(
             route = Screen.Customizer.route,
-            arguments = listOf(navArgument("widgetId") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("widgetId") { type = NavType.StringType },
+                navArgument("appWidgetId") {
+                    type = NavType.IntType
+                    defaultValue = AppWidgetManager.INVALID_APPWIDGET_ID
+                }
+            )
         ) { backStackEntry ->
             val widgetId = backStackEntry.arguments?.getString("widgetId") ?: ""
+            val appWidgetId = backStackEntry.arguments?.getInt("appWidgetId") ?: AppWidgetManager.INVALID_APPWIDGET_ID
             WidgetCustomizerScreen(
                 widgetId = widgetId,
+                appWidgetId = appWidgetId,
                 viewModel = customizerViewModel,
                 onBackClick = { navController.popBackStack() }
             )
@@ -107,6 +121,13 @@ fun AppNavGraph(navController: NavHostController) {
                 viewModel = settingsViewModel,
                 onBackClick = { navController.popBackStack() }
             )
+        }
+    }
+
+    // Runs after NavHost has set its graph, so navigate() can resolve the route.
+    LaunchedEffect(editPlacedWidget) {
+        editPlacedWidget?.let { (appWidgetId, presetId) ->
+            navController.navigate(Screen.Customizer.createRoute(presetId, appWidgetId))
         }
     }
 }

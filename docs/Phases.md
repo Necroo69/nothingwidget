@@ -25,7 +25,7 @@ record now lives in [`history/implementation_plan.md`](./history/implementation_
 | 2 — Widget engine (AlarmManager per-minute / midnight updates) | ✅ done | ✅ **Done differently** (2026-10-10) | No AlarmManager, by decision: `TextClock` ticks clock/date. Verified on emulator: minute tick, midnight, timezone, Doze, reboot, app update. Battery is 30-min polling, not event-driven (see Memory §7) |
 | 3 — Settings persistence | ✅ done | ⚠ **Partial** | Settings persist via Room/prefs; refresh-rate → scheduler wiring unverified (no scheduler exists yet) |
 | 4 — Home/gallery live previews | ✅ done | ✅ **Mostly** | Gallery renders; previews present |
-| 5 — Customization persistence & apply | ✅ done | ⚠ **Partial** | Config saves to Room, but keyed by string id (not `appWidgetId`); apply-to-placed-instance path needs verification |
+| 5 — Customization persistence & apply | ✅ done | ⚠ **Mostly** (2026-10-11) | Per-widget configs keyed by `appWidgetId` (B3); accent color verified on placed widgets. Other style options only affect the in-app preview (see roadmap P5) |
 | 6 — Onboarding | planned | ❌ **Not started** | no onboarding screen exists |
 | 7 — Weather real data | planned | ⚠ **Partial** | `WeatherRepository` + `WeatherWorker` exist; real-data/offline/permission flow unverified |
 | 8 — Accessibility & polish | planned | ❌ **Not started** | |
@@ -39,7 +39,7 @@ These replace the stale "Phase 2–10" plans above. Ordered by dependency/risk.
 **Milestone 1 — engine** (`backend-roadmap.md`)
 - ~~**B1** Widget system consolidation~~ — done 2026-10-08
 - ~~**B2** Reliable updates~~ — done 2026-10-10 (verified; `TextClock`, no AlarmManager)
-- **B3** Multi-instance configs — key on `appWidgetId` (+ Room migration)
+- ~~**B3** Multi-instance configs~~ — done 2026-10-11 (`widget_instances`, tap-to-edit)
 - **B4** Release-build safety — `proguard-rules.pro` keep rules + `proguardFiles`
 
 **Milestone 2 — v1.0 product** (`roadmap.md`)

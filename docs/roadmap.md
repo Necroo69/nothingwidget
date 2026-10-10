@@ -15,7 +15,7 @@ direct code inspection of branch `claude/project-status-release-732b84`
 |---|---|---|
 | App UI / screens | ~85% | Gallery, customizer, settings, glyph studio, widget studio all built |
 | Architecture (Hilt / Room / MVVM) | ~80% | Real DI, Room DB, repositories, per-screen VMs, typed nav |
-| Widget engine (functioning widgets) | ~55% | B1 + B2 done; configs not yet per-instance (B3); weather has no data (P6) |
+| Widget engine (functioning widgets) | ~70% | B1–B3 done; weather has no data (P6); release build unverified (B4) |
 | Reliability (updates, reboot, Doze) | ~75% | Verified 2026-10-10 via `TextClock`; battery is 30-min polling |
 | Release readiness | ~15% | R8 on with no keep rules; no signing, tests, onboarding |
 | **Overall for commercial release** | **~45–50%** | UI-complete, engine not delivered |
@@ -39,7 +39,7 @@ Full detail in [`backend-roadmap.md`](./backend-roadmap.md). Summary:
 |---|---|---|
 | ~~**B1 Consolidation**~~ ✅ 2026-10-08 | One provider set, all registered in the manifest, a provider per shipped widget type | B2, B3 |
 | ~~**B2 Reliable updates**~~ ✅ 2026-10-10 | Clock/date tick on schedule and survive Doze + reboot. Met by `TextClock`, no AlarmManager (see backend-roadmap B2) | — |
-| **B3 Multi-instance** | Key config on `appWidgetId` (+ Room migration) so instances differ | — |
+| ~~**B3 Multi-instance**~~ ✅ 2026-10-11 | Each placed widget has its own config (`widget_instances` table, lossless v1→v2 migration); tap a widget to edit it | — |
 | **B4 Release safety** | `proguard-rules.pro` keep rules for Moshi/Retrofit/Room/Hilt + `proguardFiles`, verified on a real release build | release |
 
 **Milestone 1 exit:** every v1.0 widget pins, renders live content, updates on
@@ -51,9 +51,13 @@ schedule, survives reboot/Doze, and a minified release APK runs without crashing
 
 ### Phase P5 — Customization apply end-to-end
 **Goal:** Editing a widget in the customizer visibly changes that placed instance.
-- **Tasks:** customizer "apply" writes the config for the specific `appWidgetId`
-  (depends on B3), then calls the widget's update path; live preview reads from
-  the same config; confirm color/size/style/format options all round-trip.
+- **Done in B3 (2026-10-11):** saving in the customizer redraws the placed
+  widget (tap-to-edit for one widget, gallery EDIT for its template), and
+  reopening pre-fills the saved values. Verified for accent color.
+- **Tasks:** confirm the other style options (corner radius, dot grid, glyph
+  border, subtitle) are rendered by the home-screen layouts at all. Today the
+  providers apply only the accent color, so those options change the in-app
+  preview but not the placed widget.
 - **Files:** `ui/screens/customizer/WidgetCustomizerViewModel.kt` +
   `WidgetCustomizerScreen.kt` (read/write path only, no redesign), canonical
   providers, `WidgetRepository.kt`.
@@ -161,8 +165,10 @@ survives reboot, and handles its permission being denied — the same bar as v1.
    data). Quick Toggles / Steps / Audio / Quick Note stay in-app only for now.
 2. ~~**Exact-alarm policy on Android 12+**~~ — decided 2026-10-10: no exact
    alarms. `TextClock` covers clock/date, and `SCHEDULE_EXACT_ALARM` was removed.
-3. **Room migration shape for `appWidgetId`** — column on `WidgetConfigEntity`
-   vs a separate instance table; destructive migration acceptable pre-launch.
+3. ~~**Room migration shape for `appWidgetId`**~~ — decided 2026-10-11: separate
+   `widget_instances` table with a real (non-destructive) v1→v2 migration.
+   Edit a placed widget by tapping it; gallery edits still reach widgets not
+   customized on their own.
 4. **Namespace rename** — do it before first publish or stay on `com.example`
    internally (applicationId is already correct).
 5. **v1.0 scope** — confirm the 4-widget cut (Clock/Date/Battery/Weather).

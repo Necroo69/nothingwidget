@@ -71,6 +71,11 @@
                 android:resource="@xml/widget_weather_info" />
         </receiver>
 
+        <!-- requestPinAppWidget success callback; links a pinned widget to its gallery template -->
+        <receiver
+            android:name=".widgets.WidgetPinnedReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"

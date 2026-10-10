@@ -99,6 +99,48 @@ roadmap is based on a direct inspection of the code on branch
   are not possible without a running process.
 - The original B2 plan below is kept for history but **superseded**.
 
+### B3 done (2026-10-11)
+- **Decisions (user):**
+  - **Storage:** a separate `widget_instances` table, not a column on
+    `widget_configs`, so gallery templates and placed widgets stay apart.
+  - **Editing one widget:** tap the placed widget.
+  - **Gallery EDIT:** changes the template and every placed widget not
+    customized on its own.
+- **Data:** `WidgetInstanceEntity(appWidgetId PK, presetId, isCustomized, style
+  columns)`. Room v2 with `MIGRATION_1_2`, which only creates the table, so no
+  data is lost. `WidgetRepository.getConfigForWidget(appWidgetId,
+  fallbackPresetId)` resolves the config: instance row → its template → the
+  provider's `DEFAULT_PRESET_ID`.
+- **Lifecycle:**
+  - Gallery pinning passes a success callback (`WidgetPinnedReceiver`) that
+    links the new id to its template.
+  - All four providers extend `NothingWidgetProvider`. `onDeleted` removes rows
+    and `onRestored` remaps ids.
+  - Every provider renders per id and sets a tap → `MainActivity`
+    (`ACTION_EDIT_WIDGET`) → customizer in "this widget only" mode.
+- **Verified on the emulator (API 37):**
+
+  | B3 acceptance check | Result |
+  |---|---|
+  | v1 DB with saved templates → install v2 | ✅ `user_version` 2, table added, 2 saved templates kept, no crash |
+  | Pin digital + analog clock from gallery | ✅ rows `(13, clock_digital_default)`, `(12, clock_analog_default)`; red vs white |
+  | Tap one clock → yellow → save | ✅ only that clock turns yellow |
+  | Gallery EDIT digital template → green | ✅ both uncustomized digital clocks (incl. pre-B3 widget with no row) turn green; yellow one unchanged |
+  | Reboot | ✅ each widget keeps its own color |
+  | Remove the yellow widget | ✅ its row is deleted |
+  | Pin Date from gallery | ✅ renders immediately, linked to `date_default` |
+
+- **Known limits:**
+  - Providers apply only the **accent color**. Corner radius, dot grid, glyph
+    border and subtitle change the in-app preview but not the home-screen
+    layouts (roadmap P5).
+  - Clock, analog and world clock all render the same digital `TextClock`
+    layout; the analog/world templates only differ in color on the home screen.
+  - `fallbackToDestructiveMigration()` is still enabled. Remove it before launch.
+- **Testing tip:** `am force-stop` puts the app's widgets in the launcher's
+  "loading" placeholder until the app runs again. That is platform behaviour,
+  not a bug, but it can look like a failed render.
+
 ## Phase ordering rationale
 
 Ordered by dependency, then risk:
@@ -213,6 +255,8 @@ canonical clock/date providers, `BootReceiver.kt`,
 ---
 
 ## Phase B3 — Multi-instance configs (key on `appWidgetId`)
+
+> **Done 2026-10-11** with shape (b), a separate table. See "B3 done" above.
 
 **Goal:** Each placed widget instance carries its own config, so two clocks (or
 two of any type) can differ independently.
