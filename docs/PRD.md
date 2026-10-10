@@ -36,10 +36,11 @@ quick note, date.
 
 **Known broken / incomplete (verified in code)**
 - ~~**Two provider packages coexist.**~~ Fixed 2026-10-08 (B1): only `widgets/`
-  remains (Clock, Date, Battery, Weather, all registered). `ClockWidget` relies on
-  `TextClock` XML for the time.
-- **No AlarmManager / update scheduler exists.** `SCHEDULE_EXACT_ALARM` is
-  declared but unused. Clock/date have no app-driven tick.
+  remains (Clock, Date, Battery, Weather, all registered).
+- ~~**No AlarmManager / update scheduler exists.**~~ Resolved 2026-10-10 (B2):
+  none is needed. Clock and date are `TextClock`s ticked by the launcher, verified
+  through Doze, reboot, midnight and app update. The unused
+  `SCHEDULE_EXACT_ALARM` permission was removed.
 - **Release build unsafe.** `isMinifyEnabled = true` with no `proguard-rules.pro`
   and no `proguardFiles` — Moshi/Retrofit/Room/Hilt likely crash under R8.
 - **Configs keyed by string id**, not `appWidgetId` — no independent
@@ -78,9 +79,10 @@ functional, customizable, persistent, and reliable. The remaining six types
 
 ## 5. Functional requirements
 
-- **FR-01 Updates:** clock via `AlarmManager.setExactAndAllowWhileIdle` (not
-  `updatePeriodMillis`); date reschedules at midnight; battery event-driven;
-  weather via WorkManager. All re-armed on `BOOT_COMPLETED`.
+- **FR-01 Updates:** clock and date via `TextClock` in the widget layout (not
+  `updatePeriodMillis`, not exact alarms; see Architecture §3); battery via
+  `updatePeriodMillis` (30 min); weather via WorkManager, enqueued on
+  `BOOT_COMPLETED`.
 - **FR-02 Persistence:** Room; configs keyed by `appWidgetId`; survive process
   death and reboot.
 - **FR-03 Content:** every placed widget renders real content (time/date/%/temp),
@@ -94,7 +96,8 @@ functional, customizable, persistent, and reliable. The remaining six types
 ## 6. Non-functional requirements
 
 - Widget update < 100ms; cold start < 1.5s.
-- No continuous background service; AlarmManager + WorkManager only.
+- No continuous background service and no per-minute wakeups; `TextClock` +
+  WorkManager only.
 - Survive 72h Doze and reboot.
 - minSdk 26; APK < 8MB.
 - Content descriptions on all interactive elements and widgets.

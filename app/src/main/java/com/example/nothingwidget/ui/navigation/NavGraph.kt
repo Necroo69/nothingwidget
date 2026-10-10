@@ -16,6 +16,7 @@ import com.example.nothingwidget.data.repository.QuickSettingsRepository
 import com.example.nothingwidget.data.repository.StepTrackerRepository
 import com.example.nothingwidget.data.repository.WeatherRepository
 import com.example.nothingwidget.data.repository.WidgetRepository
+import com.example.nothingwidget.domain.model.WidgetType
 import com.example.nothingwidget.ui.screens.customizer.WidgetCustomizerScreen
 import com.example.nothingwidget.ui.screens.customizer.WidgetCustomizerViewModel
 import com.example.nothingwidget.ui.screens.gallery.WidgetGalleryScreen
@@ -26,6 +27,7 @@ import com.example.nothingwidget.ui.screens.settings.SettingsScreen
 import com.example.nothingwidget.ui.screens.settings.SettingsViewModel
 import com.example.nothingwidget.ui.screens.studio.WidgetStudioScreen
 import com.example.nothingwidget.ui.screens.studio.WidgetStudioViewModel
+import com.example.nothingwidget.widgets.requestWidgetUpdate
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
@@ -54,7 +56,11 @@ fun AppNavGraph(navController: NavHostController) {
     val customizerViewModel = remember { WidgetCustomizerViewModel(widgetRepo, batteryRepo) }
     val studioViewModel = remember { WidgetStudioViewModel(widgetRepo, batteryRepo) }
     val glyphViewModel = remember { GlyphStudioViewModel() }
-    val settingsViewModel = remember { SettingsViewModel(appPrefsRepo) }
+    val settingsViewModel = remember {
+        SettingsViewModel(appPrefsRepo) {
+            requestWidgetUpdate(context.applicationContext, WidgetType.DIGITAL_CLOCK)
+        }
+    }
 
     NavHost(
         navController = navController,

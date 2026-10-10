@@ -30,7 +30,7 @@ com.example.nothingwidget/              # namespace still com.example; appId = c
 │   ├── theme/ (Color, Theme, Type)
 │   └── screens/ (gallery, customizer, settings, glyph, studio)  # each with a ViewModel
 ├── widgets/                            # the only provider package (B1 done 2026-10-08)
-│   ├── {Clock,Date,Battery,Weather}Widget.kt   # all REGISTERED; ClockWidget time via TextClock XML
+│   ├── {Clock,Date,Battery,Weather}Widget.kt   # all REGISTERED; clock/date ticked by TextClock
 │   └── WidgetProviders.kt              # providerClassFor(type): WidgetType → provider, or null
 └── worker/WeatherWorker.kt             # WorkManager periodic (15 min)
 ```
@@ -45,9 +45,9 @@ real and solid — the gaps are in the widget engine, not the app architecture.
 | Hilt DI, Room, per-screen ViewModels, typed nav | ✅ |
 | Gallery / customizer / settings / glyph / studio screens render | ✅ |
 | Battery widget shows % | ✅ refreshes every 30 min; no instant plug/unplug update |
-| Registered clock widget shows **time content** | ❌ sets color only; time via `TextClock` XML |
-| App-driven per-minute / midnight updates (AlarmManager) | ❌ none exists |
-| Widgets survive reboot with correct data | ⚠ BootReceiver pings once; no alarm re-arm |
+| Registered clock widget shows **time content** | ✅ `TextClock` in the layout; provider applies color |
+| Per-minute / midnight updates | ✅ launcher-driven `TextClock`, no AlarmManager needed (B2, verified 2026-10-10) |
+| Widgets survive reboot, Doze, app update with correct data | ✅ verified 2026-10-10 |
 | One provider set, all registered | ✅ B1 done; Quick Toggles / Steps / Audio / Quick Note are in-app only |
 | Multi-instance independent configs | ❌ keyed by string id, not `appWidgetId` |
 | Minified release build runs | ❌ R8 on, no keep rules / `proguardFiles` |
@@ -59,32 +59,39 @@ The target keeps the current MVVM/Hilt/Room shape and fixes the engine. See
 
 ```
 Presentation (Compose) → ViewModel (StateFlow) → Repository (Room / system / HTTP)
-                                                → Widget engine (AlarmManager, WorkManager, RemoteViews)
+                                                → Widget engine (TextClock, WorkManager, RemoteViews)
 ```
 
 Key changes:
 1. ~~**One provider set**~~ — done (2026-10-08): `widgets/` kept, `widget/` deleted.
    Types without a provider are labelled in-app only. *(B1)*
-2. **Update engine:** `WidgetUpdateScheduler` + `WidgetUpdateReceiver` using
-   `AlarmManager.setExactAndAllowWhileIdle`, wired into `onEnabled`/`onUpdate`/
-   `BootReceiver`, re-armed after reboot, Doze-tolerant. *(B2)*
+2. ~~**Update engine**~~ — resolved (2026-10-10) without AlarmManager: clock and
+   date are `TextClock`s that the launcher ticks itself. Verified for minute tick,
+   midnight rollover, timezone change, forced Doze, reboot and app update. The
+   unused `SCHEDULE_EXACT_ALARM` permission was removed. *(B2)*
 3. **Instance-scoped config:** add `appWidgetId` keying (+ Room migration). *(B3)*
 4. **Release safety:** `proguard-rules.pro` keep rules + `proguardFiles`. *(B4)*
 
-## 3. Widget update architecture (target)
+## 3. Widget update architecture
 
 ```
-Clock  → AlarmManager.setExactAndAllowWhileIdle(next minute) → WidgetUpdateReceiver → updateAppWidget → reschedule
-Date   → AlarmManager at next local midnight → receiver → updateAppWidget → reschedule
+Clock  → TextClock in RemoteViews; the launcher re-formats it on TIME_TICK, time/timezone/date
+         change. The provider only sets the accent color (onUpdate / customizer save).
+Date   → same TextClock mechanism; rolls over at local midnight by itself
 Battery→ updatePeriodMillis 30 min (current). POWER_(DIS)CONNECTED / BATTERY_CHANGED are NOT
          delivered to manifest receivers on API 26+; instant updates need a live-process receiver
 Weather→ WorkManager PeriodicWorkRequest (≥15 min) → OpenMeteo → Room → updateAppWidget
-Boot   → BootReceiver re-arms all alarms + enqueues WeatherWorker
+Boot   → the system re-sends APPWIDGET_UPDATE after boot and after an app update; BootReceiver
+         also pings all providers and enqueues WeatherWorker
 ```
 
-Android 12+ exact-alarm policy: use exact for the clock
-(`USE_EXACT_ALARM`/`SCHEDULE_EXACT_ALARM`, check `canScheduleExactAlarms()`),
-inexact fallback elsewhere.
+**Why no AlarmManager (decided 2026-10-10):** a per-minute exact alarm would wake
+the device 1,440 times a day to redraw a widget nobody is looking at, and on
+Android 14+ `SCHEDULE_EXACT_ALARM` is denied by default while `USE_EXACT_ALARM`
+is restricted by Play policy to alarm/calendar apps. `TextClock` costs nothing
+while the screen is off and is what AOSP DeskClock uses. Use AlarmManager only if
+a widget must show time-derived content that `TextClock` cannot format (for
+example a "next alarm in 3h" label); prefer an inexact alarm then.
 
 ## 4. Persistence (current)
 

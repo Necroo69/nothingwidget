@@ -22,7 +22,7 @@ record now lives in [`history/implementation_plan.md`](./history/implementation_
 | 0 — Triage & blockers | done | ⚠ **Partial** | appId fixed, targetSdk 35 / compileSdk 37 (lowering compileSdk to 35 broke the build; restored 2026-10-02), R8 *enabled* but **no keep rules**; namespace still `com.example`; dead nav removed |
 | 1 — Architecture foundation | ✅ done | ✅ **Done** | Hilt + Room + MVVM + typed nav verified in code |
 | 1b — Repo 2 migration | ✅ done | ✅ **Done** | Room/Coil/Retrofit/Moshi integrated; old Repo 1 UI removed |
-| 2 — Widget engine (AlarmManager per-minute / midnight updates) | ✅ done | ❌ **NOT done** | **No AlarmManager exists anywhere.** Clock relies on `TextClock` XML; registered `ClockWidget` sets color only. Battery event-handling ✅ |
+| 2 — Widget engine (AlarmManager per-minute / midnight updates) | ✅ done | ✅ **Done differently** (2026-10-10) | No AlarmManager, by decision: `TextClock` ticks clock/date. Verified on emulator: minute tick, midnight, timezone, Doze, reboot, app update. Battery is 30-min polling, not event-driven (see Memory §7) |
 | 3 — Settings persistence | ✅ done | ⚠ **Partial** | Settings persist via Room/prefs; refresh-rate → scheduler wiring unverified (no scheduler exists yet) |
 | 4 — Home/gallery live previews | ✅ done | ✅ **Mostly** | Gallery renders; previews present |
 | 5 — Customization persistence & apply | ✅ done | ⚠ **Partial** | Config saves to Room, but keyed by string id (not `appWidgetId`); apply-to-placed-instance path needs verification |
@@ -37,8 +37,8 @@ record now lives in [`history/implementation_plan.md`](./history/implementation_
 These replace the stale "Phase 2–10" plans above. Ordered by dependency/risk.
 
 **Milestone 1 — engine** (`backend-roadmap.md`)
-- **B1** Widget system consolidation — one registered provider set, cover every type
-- **B2** Reliable updates — AlarmManager + receiver; Doze + reboot
+- ~~**B1** Widget system consolidation~~ — done 2026-10-08
+- ~~**B2** Reliable updates~~ — done 2026-10-10 (verified; `TextClock`, no AlarmManager)
 - **B3** Multi-instance configs — key on `appWidgetId` (+ Room migration)
 - **B4** Release-build safety — `proguard-rules.pro` keep rules + `proguardFiles`
 

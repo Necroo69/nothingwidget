@@ -15,8 +15,8 @@ direct code inspection of branch `claude/project-status-release-732b84`
 |---|---|---|
 | App UI / screens | ~85% | Gallery, customizer, settings, glyph studio, widget studio all built |
 | Architecture (Hilt / Room / MVVM) | ~80% | Real DI, Room DB, repositories, per-screen VMs, typed nav |
-| Widget engine (functioning widgets) | ~35% | Registered clock sets color only; no live content tick |
-| Reliability (updates, reboot, Doze) | ~25% | **No AlarmManager exists**; relies on `TextClock` XML |
+| Widget engine (functioning widgets) | ~55% | B1 + B2 done; configs not yet per-instance (B3); weather has no data (P6) |
+| Reliability (updates, reboot, Doze) | ~75% | Verified 2026-10-10 via `TextClock`; battery is 30-min polling |
 | Release readiness | ~15% | R8 on with no keep rules; no signing, tests, onboarding |
 | **Overall for commercial release** | **~45–50%** | UI-complete, engine not delivered |
 
@@ -37,8 +37,8 @@ Full detail in [`backend-roadmap.md`](./backend-roadmap.md). Summary:
 
 | Phase | Goal | Blocks |
 |---|---|---|
-| **B1 Consolidation** | One provider set, all registered in the manifest, a provider per shipped widget type | B2, B3 |
-| **B2 Reliable updates** | `AlarmManager.setExactAndAllowWhileIdle` + update receiver wired into `onEnabled`/`onUpdate`/`BootReceiver`; survive Doze + reboot | — |
+| ~~**B1 Consolidation**~~ ✅ 2026-10-08 | One provider set, all registered in the manifest, a provider per shipped widget type | B2, B3 |
+| ~~**B2 Reliable updates**~~ ✅ 2026-10-10 | Clock/date tick on schedule and survive Doze + reboot. Met by `TextClock`, no AlarmManager (see backend-roadmap B2) | — |
 | **B3 Multi-instance** | Key config on `appWidgetId` (+ Room migration) so instances differ | — |
 | **B4 Release safety** | `proguard-rules.pro` keep rules for Moshi/Retrofit/Room/Hilt + `proguardFiles`, verified on a real release build | release |
 
@@ -87,14 +87,17 @@ schedule, survives reboot/Doze, and a minified release APK runs without crashing
 
 ### Phase P8 — Settings drive the engine
 **Goal:** Settings values actually affect behavior.
-- **Tasks:** confirm refresh-rate selection feeds the scheduler/WorkManager
-  interval; decide whether per-widget `updateIntervalMinutes` (currently unused)
-  is honored; "force refresh all widgets" action; remove any vestigial controls.
+- **Done in B2 (2026-10-10):** the 24-HOUR FORMAT toggle drives the clock widget
+  and previews.
+- **Tasks:** confirm refresh-rate selection feeds the `WeatherWorker` interval
+  (B2 added no app scheduler; clock/date need none); decide whether per-widget
+  `updateIntervalMinutes` (currently unused) is honored or removed; "force refresh
+  all widgets" action; remove any vestigial controls.
 - **Files:** `ui/screens/settings/SettingsViewModel.kt`,
-  `data/repository/AppPreferencesRepository.kt`, scheduler from B2.
+  `data/repository/AppPreferencesRepository.kt`, `worker/WeatherWorker.kt`.
 - **Acceptance:** change refresh rate → kill/relaunch → value persists and the
   next scheduled interval matches.
-- **Dependencies:** B2.
+- **Dependencies:** P6 (weather worker scheduling).
 
 **Milestone 2 exit:** the 4 core widgets are fully functional, customizable,
 persistent, onboarded, and permission-safe.
@@ -156,8 +159,8 @@ survives reboot, and handles its permission being denied — the same bar as v1.
 1. ~~**Which provider set survives B1**~~ — decided 2026-10-08: keep `widgets/`
    (the registered, tested set) and delete `widget/` (unregistered, placeholder
    data). Quick Toggles / Steps / Audio / Quick Note stay in-app only for now.
-2. **Exact-alarm policy on Android 12+** — exact for clock (needs
-   `USE_EXACT_ALARM`/`SCHEDULE_EXACT_ALARM`), inexact fallback elsewhere.
+2. ~~**Exact-alarm policy on Android 12+**~~ — decided 2026-10-10: no exact
+   alarms. `TextClock` covers clock/date, and `SCHEDULE_EXACT_ALARM` was removed.
 3. **Room migration shape for `appWidgetId`** — column on `WidgetConfigEntity`
    vs a separate instance table; destructive migration acceptable pre-launch.
 4. **Namespace rename** — do it before first publish or stay on `com.example`

@@ -51,7 +51,7 @@ import com.example.nothingwidget.ui.components.InteractiveWidgetView
 import com.example.nothingwidget.ui.components.NothingHeader
 import com.example.nothingwidget.ui.theme.NothingDotFontFamily
 import com.example.nothingwidget.ui.theme.NothingRed
-import com.example.nothingwidget.widgets.providerClassFor
+import com.example.nothingwidget.widgets.requestWidgetUpdate
 
 @Composable
 fun WidgetCustomizerScreen(
@@ -247,7 +247,7 @@ fun WidgetCustomizerScreen(
                 Button(
                     onClick = {
                         viewModel.saveConfig {
-                            triggerWidgetUpdate(context, config.type)
+                            requestWidgetUpdate(context, config.type)
                             onBackClick()
                         }
                     },
@@ -272,24 +272,6 @@ fun WidgetCustomizerScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
             }
-        }
-    }
-}
-
-fun triggerWidgetUpdate(context: android.content.Context, type: com.example.nothingwidget.domain.model.WidgetType) {
-    val providerClass = providerClassFor(type)
-
-    if (providerClass != null) {
-        val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
-        val componentName = android.content.ComponentName(context, providerClass)
-        val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-        
-        if (appWidgetIds.isNotEmpty()) {
-            val intent = android.content.Intent(context, providerClass).apply {
-                action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
-            }
-            context.sendBroadcast(intent)
         }
     }
 }

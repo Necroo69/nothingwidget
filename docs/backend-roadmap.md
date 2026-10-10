@@ -61,6 +61,44 @@ roadmap is based on a direct inspection of the code on branch
   their widgets is future work (Steps/Audio need real data sources first).
 - B2 and B3 are unblocked.
 
+### B2 done (2026-10-10) — without AlarmManager
+- The "verified starting state" above treated `TextClock` as a gap. It is not.
+  `TextClock` inside `RemoteViews` is re-formatted by the launcher on every minute
+  tick and on time, timezone and date changes. It needs no app process and costs
+  nothing while the screen is off. AOSP DeskClock's widget works the same way.
+- **Tested on the Pixel_10_Pro emulator (API 37), widgets placed from the gallery,
+  with no code changes:**
+
+  | B2 acceptance check | Result |
+  |---|---|
+  | Clock advances at the minute | ✅ 23:00 → 23:01 |
+  | Date rolls over at local midnight (`cmd alarm set-time` to 23:59:40) | ✅ SAT · 10 → SUN · 11, both widgets |
+  | Timezone change (`cmd alarm set-timezone UTC`) | ✅ 23:07 → 17:37 immediately |
+  | `dumpsys deviceidle force-idle` for 2 min, then wake | ✅ correct time on wake |
+  | `adb reboot`, no app launch | ✅ all 4 widgets correct, accent colors kept |
+  | App update (`adb install -r`) | ✅ system re-sends `APPWIDGET_UPDATE`; content and colors kept |
+
+- **Decision:** no `WidgetUpdateScheduler`/`WidgetUpdateReceiver`. A per-minute
+  exact alarm would wake the device 1,440 times a day for a widget nobody is
+  looking at. On Android 14+ `SCHEDULE_EXACT_ALARM` is denied by default, and Play
+  allows `USE_EXACT_ALARM` only for alarm/calendar apps.
+- **Changes:**
+  - Removed the unused `SCHEDULE_EXACT_ALARM` permission. Added comments to
+    `ClockWidget`/`DateWidget` saying why there is no alarm.
+  - **12/24-hour (decided: follow the app setting).** The Settings "24-HOUR
+    FORMAT" toggle used to do nothing. Now `ClockWidget` sets both TextClock
+    formats to `ClockWidget.timePattern()` (`HH:mm` or `h:mm`, no AM/PM).
+    Toggling redraws placed clocks, and in-app previews read it through
+    `LocalIs24HourClock`.
+  - **Battery (decided: keep the 30-min `updatePeriodMillis`).** It now also
+    refreshes whenever the app is opened (`MainActivity.onStart`).
+  - `triggerWidgetUpdate` moved out of the customizer screen into
+    `widgets/WidgetProviders.kt` as `requestWidgetUpdate(context, type)`.
+- **Still open, outside B2:** `WeatherWorker` is enqueued only from
+  `BootReceiver` (Memory §7, fix in P6). Instant battery updates on plug/unplug
+  are not possible without a running process.
+- The original B2 plan below is kept for history but **superseded**.
+
 ## Phase ordering rationale
 
 Ordered by dependency, then risk:
@@ -126,6 +164,9 @@ work begins.
 ---
 
 ## Phase B2 — Reliable live updates (AlarmManager + Doze + reboot)
+
+> **Superseded 2026-10-10.** Every acceptance criterion below already passes with
+> `TextClock`, and no alarm code was added. See "B2 done" above.
 
 **Goal:** Time-sensitive widgets update on schedule without relying on
 `TextClock` XML or the capped `updatePeriodMillis`, and survive Doze and reboot.

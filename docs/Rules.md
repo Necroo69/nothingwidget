@@ -68,28 +68,26 @@ updatePeriodMillis="60000"
 . Android silently caps this at 1,800,000ms (30 min).
 <!-- ❌ WRONG — silently ignored by Android for values < 1,800,000 -->
 android:updatePeriodMillis="60000"
-<!-- ✅ CORRECT — use AlarmManager instead; set this to 0 for clock -->
+<!-- ✅ CORRECT — set this to 0 for clock/date; the TextClock in the layout does the ticking -->
 android:updatePeriodMillis="0"
-RULE-W2: Clock widgets must use AlarmManager with setExactAndAllowWhileIdle
-// ✅ CORRECT — schedule next minute update
-fun scheduleNextMinuteUpdate(context: Context) {
-    val intent = Intent(context, ClockUpdateReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(
-        context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-    val nextMinute = Calendar.getInstance().apply {
-        add(Calendar.MINUTE, 1)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-    (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
-        .setExactAndAllowWhileIdle(AlarmManager.RTC, nextMinute.timeInMillis, pendingIntent)
-}
-RULE-W3: All widget providers must handle BOOT_COMPLETED
-A standalone 
-BootReceiver
- must reschedule AlarmManager and enqueue WorkManager tasks.
-<receiver android:name=".receiver.BootReceiver" android:exported="true">
+RULE-W2: Clock and date widgets must use TextClock, not AlarmManager
+(Revised 2026-10-10 — this rule used to require setExactAndAllowWhileIdle every minute.)
+A TextClock inside RemoteViews is re-formatted by the launcher on every minute tick and on
+time, timezone and date changes. It needs no app process, no wakeups and no exact-alarm
+permission. It was verified through Doze, reboot, midnight and app update (docs/Memory.md §8).
+<!-- ✅ CORRECT — widget layout -->
+<TextClock
+    android:id="@+id/widget_clock_time"
+    android:format12Hour="HH:mm"
+    android:format24Hour="HH:mm" />
+// ❌ WRONG — wakes the device 1,440×/day, needs SCHEDULE_EXACT_ALARM (denied by default on
+// Android 14+) or USE_EXACT_ALARM (Play allows it only for alarm/calendar apps)
+alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC, nextMinute, pendingIntent)
+Use AlarmManager only for time-derived content TextClock cannot format, and prefer an inexact alarm.
+RULE-W3: Re-render widgets after BOOT_COMPLETED
+The system already sends APPWIDGET_UPDATE after boot and after an app update. BootReceiver
+additionally pings every provider and enqueues WorkManager tasks (WeatherWorker).
+<receiver android:name=".BootReceiver" android:exported="true">
     <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
     </intent-filter>
@@ -339,7 +337,7 @@ feat:
 fix:
  ✅):
 feat: add BOOT_COMPLETED receiver for widget persistence
-fix: replace updatePeriodMillis with AlarmManager for clock widget
+fix: set updatePeriodMillis to 0 for the TextClock-driven clock widget
 refactor: migrate SharedPreferences to DataStore
 perf: defer widget updates to background thread using goAsync
 chore: update compileSdk and targetSdk to 35
