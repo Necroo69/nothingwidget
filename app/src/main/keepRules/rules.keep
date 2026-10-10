@@ -1,12 +1,31 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
+# Project R8 keep rules. AGP 9 merges every file in src/main/keepRules into the release
+# build, on top of proguard-android-optimize.txt (applied by default) and each library's
+# bundled consumer rules. See docs/backend-roadmap.md "B4 done" for how this was verified.
 #
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# Already covered without rules here (verified in build/outputs/mapping/release/configuration.txt):
+# - Manifest components (activity, widget providers, receivers): AAPT2-generated rules.
+# - Room, WorkManager (worker class names), Hilt/Dagger, DataStore, coroutines, Compose,
+#   Navigation: their own bundled rules.
+# - Moshi @JsonClass(generateAdapter = true) models: moshi-kotlin-codegen emits per-class rules.
+#   Use codegen for new models; KotlinJsonAdapterFactory (reflection) would need extra rules.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Retrofit 2.9 + R8 full mode ---------------------------------------------------------
+# Retrofit only bundles these rules from 2.10 on. Without them, R8 strips the generic
+# signatures that suspend service methods depend on, and calls fail at runtime with
+# "ClassCastException: Class cannot be cast to ParameterizedType". The rules are
+# conditional, so they cost nothing until a Retrofit interface exists (P6 weather).
+# Delete this block after upgrading Retrofit to 2.10 or later.
+
+# Keep inherited services.
+-if interface * { @retrofit2.http.* <methods>; }
+-keep,allowobfuscation interface * extends <1>
+
+# Suspend functions are wrapped in continuations whose type argument Retrofit reads.
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# R8 full mode strips generic signatures from return types that are not kept.
+-if interface * { @retrofit2.http.* public *** *(...); }
+-keep,allowoptimization,allowshrinking,allowobfuscation class <3>
+
+# R8 full mode strips generic signatures from classes that are not kept.
+-keep,allowobfuscation,allowshrinking class retrofit2.Response

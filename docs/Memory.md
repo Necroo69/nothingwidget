@@ -602,3 +602,23 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
   - `adb shell am broadcast` of `APPWIDGET_UPDATE` is refused (protected broadcast). To force a redraw, use the app (customizer save, 24h toggle) or reboot.
   - The pin callback must be a **mutable** PendingIntent (FLAG_MUTABLE on API 31+), or the system cannot add EXTRA_APPWIDGET_ID.
 - **Still open:** only the accent color reaches home-screen widgets (roadmap P5). `fallbackToDestructiveMigration()` should be removed before launch.
+
+## 10. Maintenance Notes (2026-10-11)
+
+### Done: B4 release-build safety
+- **Finding:** AGP 9.3.1 already applies `proguard-android-optimize.txt` and merges `src/main/keepRules/*.keep` plus all library consumer rules. The old "R8 with no keep rules" alarm was out of date. The minified release APK runs fine: 5.4 MB, against 27.8 MB for debug.
+- **Fix:** `app/src/main/keepRules/rules.keep` adds Retrofit 2.9's missing R8 full-mode rules for `suspend` service methods. Without them, P6's weather call would fail in release with a `ParameterizedType` ClassCastException. Delete them after upgrading Retrofit to ≥ 2.10.
+- **Verified (emulator, release APK):** all screens, the database, the 24h setting, tap-to-edit, pinning, WorkManager and reboot. Full table in `backend-roadmap.md` "B4 done".
+- **How to test a release build locally** (no signing config exists yet; P11 adds one):
+  ```
+  ./gradlew assembleRelease
+  apksigner sign --ks ~/.android/debug.keystore --ks-key-alias androiddebugkey \
+    --ks-pass pass:android --key-pass pass:android \
+    --out app-release-signed.apk app/build/outputs/apk/release/app-release-unsigned.apk
+  adb install -r app-release-signed.apk
+  ```
+  It installs over a debug build (same debug key) and keeps app data. `run-as` does not work on it (not debuggable).
+- **Gotchas:**
+  - `am force-stop` cancels the app's WorkManager jobs until it next starts. Launch the app before `cmd jobscheduler run -f <pkg> <id>`.
+  - The pin dialog binds a widget id before you confirm, so an id in `dumpsys appwidget` does not prove the widget was placed.
+- **For P11:** keep `app/build/outputs/mapping/release/mapping.txt` for every published build and upload it to Play Console, or crash stack traces stay obfuscated.
