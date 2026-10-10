@@ -41,8 +41,9 @@ quick note, date.
   none is needed. Clock and date are `TextClock`s ticked by the launcher, verified
   through Doze, reboot, midnight and app update. The unused
   `SCHEDULE_EXACT_ALARM` permission was removed.
-- **Release build unsafe.** `isMinifyEnabled = true` with no `proguard-rules.pro`
-  and no `proguardFiles` — Moshi/Retrofit/Room/Hilt likely crash under R8.
+- ~~**Release build unsafe.**~~ Fixed 2026-10-11 (B4): the minified release APK
+  was verified on a device. AGP 9 already applied the default and library rules;
+  the project rules add Retrofit 2.9's missing suspend-function rules.
 - ~~**Configs keyed by string id**~~ Fixed 2026-10-11 (B3): each placed widget
   has its own config, keyed by `appWidgetId`.
 - **Coverage gaps.** Quick Toggles, Step Tracker, Audio Player and Quick Note

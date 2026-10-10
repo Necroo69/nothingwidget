@@ -15,9 +15,9 @@ direct code inspection of branch `claude/project-status-release-732b84`
 |---|---|---|
 | App UI / screens | ~85% | Gallery, customizer, settings, glyph studio, widget studio all built |
 | Architecture (Hilt / Room / MVVM) | ~80% | Real DI, Room DB, repositories, per-screen VMs, typed nav |
-| Widget engine (functioning widgets) | ~70% | B1–B3 done; weather has no data (P6); release build unverified (B4) |
+| Widget engine (functioning widgets) | ~75% | Milestone 1 (B1–B4) done; weather has no data (P6) |
 | Reliability (updates, reboot, Doze) | ~75% | Verified 2026-10-10 via `TextClock`; battery is 30-min polling |
-| Release readiness | ~15% | R8 on with no keep rules; no signing, tests, onboarding |
+| Release readiness | ~30% | Minified release verified on device (B4); no signing, tests, onboarding |
 | **Overall for commercial release** | **~45–50%** | UI-complete, engine not delivered |
 
 ## Strategy
@@ -40,10 +40,11 @@ Full detail in [`backend-roadmap.md`](./backend-roadmap.md). Summary:
 | ~~**B1 Consolidation**~~ ✅ 2026-10-08 | One provider set, all registered in the manifest, a provider per shipped widget type | B2, B3 |
 | ~~**B2 Reliable updates**~~ ✅ 2026-10-10 | Clock/date tick on schedule and survive Doze + reboot. Met by `TextClock`, no AlarmManager (see backend-roadmap B2) | — |
 | ~~**B3 Multi-instance**~~ ✅ 2026-10-11 | Each placed widget has its own config (`widget_instances` table, lossless v1→v2 migration); tap a widget to edit it | — |
-| **B4 Release safety** | `proguard-rules.pro` keep rules for Moshi/Retrofit/Room/Hilt + `proguardFiles`, verified on a real release build | release |
+| ~~**B4 Release safety**~~ ✅ 2026-10-11 | Minified release APK (5.4 MB) verified on device; AGP 9 already applies default + library rules; project rules add Retrofit 2.9 suspend fixes | release |
 
 **Milestone 1 exit:** every v1.0 widget pins, renders live content, updates on
 schedule, survives reboot/Doze, and a minified release APK runs without crashing.
+✅ **Met 2026-10-11.** Weather still has no real data; that is P6.
 
 ---
 
@@ -75,7 +76,9 @@ schedule, survives reboot/Doze, and a minified release APK runs without crashing
   weather provider + layout, manifest permission.
 - **Acceptance:** fresh install shows real temp within ~2 min of placement;
   offline shows cached value with timestamp; unit toggle applies immediately.
-- **Dependencies:** B1, B4 (Moshi keep rules).
+- **Dependencies:** B1, B4 (done). Use Moshi codegen (`@JsonClass(generateAdapter = true)`)
+  for the API models, and re-run the release check in `backend-roadmap.md` "B4 done"
+  once the network call exists.
 
 ### Phase P7 — Onboarding + permissions UX
 **Goal:** A new user understands the app and grants what each widget needs.

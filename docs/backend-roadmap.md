@@ -141,6 +141,39 @@ roadmap is based on a direct inspection of the code on branch
   "loading" placeholder until the app runs again. That is platform behaviour,
   not a bug, but it can look like a failed render.
 
+### B4 done (2026-10-11)
+- **Finding:** the premise "R8 is on with no `proguardFiles`, so the release build
+  is unsafe" was out of date. AGP 9.3.1 already applies
+  `proguard-android-optimize.txt` by default and merges `src/main/keepRules/*.keep`.
+  Every library's consumer rules were included (Room, WorkManager, Hilt/Dagger,
+  DataStore, coroutines, Compose, Navigation, Moshi, Retrofit, OkHttp), as were
+  AAPT2's rules for manifest components. Check this in
+  `app/build/outputs/mapping/release/configuration.txt`.
+- **Real gap found:** Retrofit **2.9** does not bundle the R8 full-mode rules for
+  `suspend` service methods (they arrived in 2.10). P6's weather call would have
+  crashed in release with `ClassCastException … ParameterizedType`. Those rules
+  are now in `app/src/main/keepRules/rules.keep`. They are conditional and do
+  nothing until a Retrofit interface exists. Delete them after upgrading Retrofit.
+- **No `proguard-rules.pro` / `proguardFiles` added:** with AGP 9 the `keepRules`
+  folder is the supported place, and adding `proguardFiles` would duplicate the
+  default file.
+- **Verified on the emulator (API 37), release APK signed with the debug key:**
+
+  | B4 acceptance check | Result |
+  |---|---|
+  | `./gradlew assembleRelease` | ✅ succeeds |
+  | APK size (target < 8 MB) | ✅ 5.4 MB (debug: 27.8 MB) |
+  | Launch + every screen (gallery, customizer, card builder, glyph studio, settings) | ✅ no crashes |
+  | Room v2 DB and saved templates read in release | ✅ |
+  | 24h toggle (DataStore) → widget | ✅ `1:18` ↔ `01:18` |
+  | Tap widget → per-widget customizer → save | ✅ only that clock changed |
+  | Pin analog clock (pin callback receiver) | ✅ rendered in the analog template's white |
+  | WeatherWorker via WorkManager (`cmd jobscheduler run -f`) | ✅ ran and was re-enqueued, no crash |
+  | Reboot | ✅ all widgets correct, colors kept |
+  | Weather network path | ⏭ not applicable: no network call exists yet (P6). Re-run this table after P6 |
+
+- **How to repeat:** see Memory §10.
+
 ## Phase ordering rationale
 
 Ordered by dependency, then risk:
@@ -295,6 +328,9 @@ only; no UI redesign.
 ---
 
 ## Phase B4 — Release-build safety (R8 / ProGuard)
+
+> **Done 2026-10-11.** See "B4 done" above. The plan below assumed an older AGP;
+> no `proguard-rules.pro` was needed.
 
 **Goal:** A minified release build runs without reflection/codegen crashes and is
 verified on-device.

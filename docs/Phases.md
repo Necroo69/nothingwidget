@@ -19,7 +19,7 @@ record now lives in [`history/implementation_plan.md`](./history/implementation_
 
 | Phase | Original claim | Verified status | Notes |
 |---|---|---|---|
-| 0 — Triage & blockers | done | ⚠ **Partial** | appId fixed, targetSdk 35 / compileSdk 37 (lowering compileSdk to 35 broke the build; restored 2026-10-02), R8 *enabled* but **no keep rules**; namespace still `com.example`; dead nav removed |
+| 0 — Triage & blockers | done | ⚠ **Partial** | appId fixed, targetSdk 35 / compileSdk 37 (lowering compileSdk to 35 broke the build; restored 2026-10-02), R8 enabled and verified on device (B4, 2026-10-11); namespace still `com.example`; dead nav removed |
 | 1 — Architecture foundation | ✅ done | ✅ **Done** | Hilt + Room + MVVM + typed nav verified in code |
 | 1b — Repo 2 migration | ✅ done | ✅ **Done** | Room/Coil/Retrofit/Moshi integrated; old Repo 1 UI removed |
 | 2 — Widget engine (AlarmManager per-minute / midnight updates) | ✅ done | ✅ **Done differently** (2026-10-10) | No AlarmManager, by decision: `TextClock` ticks clock/date. Verified on emulator: minute tick, midnight, timezone, Doze, reboot, app update. Battery is 30-min polling, not event-driven (see Memory §7) |
@@ -40,7 +40,7 @@ These replace the stale "Phase 2–10" plans above. Ordered by dependency/risk.
 - ~~**B1** Widget system consolidation~~ — done 2026-10-08
 - ~~**B2** Reliable updates~~ — done 2026-10-10 (verified; `TextClock`, no AlarmManager)
 - ~~**B3** Multi-instance configs~~ — done 2026-10-11 (`widget_instances`, tap-to-edit)
-- **B4** Release-build safety — `proguard-rules.pro` keep rules + `proguardFiles`
+- ~~**B4** Release-build safety~~ — done 2026-10-11 (minified APK verified on device)
 
 **Milestone 2 — v1.0 product** (`roadmap.md`)
 - **P5** Customization apply end-to-end

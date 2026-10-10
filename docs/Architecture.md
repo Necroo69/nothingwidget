@@ -50,7 +50,7 @@ real and solid — the gaps are in the widget engine, not the app architecture.
 | Widgets survive reboot, Doze, app update with correct data | ✅ verified 2026-10-10 |
 | One provider set, all registered | ✅ B1 done; Quick Toggles / Steps / Audio / Quick Note are in-app only |
 | Multi-instance independent configs | ✅ `widget_instances` keyed by `appWidgetId` (B3, 2026-10-11) |
-| Minified release build runs | ❌ R8 on, no keep rules / `proguardFiles` |
+| Minified release build runs | ✅ verified on device (B4, 2026-10-11); 5.4 MB |
 
 ## 2. Target architecture (to-be)
 
@@ -71,7 +71,9 @@ Key changes:
    unused `SCHEDULE_EXACT_ALARM` permission was removed. *(B2)*
 3. ~~**Instance-scoped config**~~ — done (2026-10-11): `widget_instances` table,
    tap-to-edit, gallery edits flow to uncustomized widgets. *(B3)*
-4. **Release safety:** `proguard-rules.pro` keep rules + `proguardFiles`. *(B4)*
+4. ~~**Release safety**~~ — done (2026-10-11): AGP 9 applies `proguard-android-optimize.txt`
+   and library rules by default; `src/main/keepRules/rules.keep` adds the Retrofit 2.9
+   suspend-function rules. Verified on device. *(B4)*
 
 ## 3. Widget update architecture
 
