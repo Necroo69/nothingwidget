@@ -4,7 +4,7 @@
     android:minHeight="130dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
-    android:description="@string/app_name"
+    android:description="@string/widget_weather_description"
     android:previewLayout="@layout/widget_weather"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_weather"

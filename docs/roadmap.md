@@ -13,12 +13,14 @@ direct code inspection of branch `claude/project-status-release-732b84`
 
 | Area | Completion | Notes |
 |---|---|---|
-| App UI / screens | ~85% | Gallery, customizer, settings, glyph studio, widget studio all built |
+| App UI / screens | ~90% | Gallery, customizer, settings, onboarding, glyph studio, widget studio |
 | Architecture (Hilt / Room / MVVM) | ~80% | Real DI, Room DB, repositories, per-screen VMs, typed nav |
-| Widget engine (functioning widgets) | ~35% | Registered clock sets color only; no live content tick |
-| Reliability (updates, reboot, Doze) | ~25% | **No AlarmManager exists**; relies on `TextClock` XML |
-| Release readiness | ~15% | R8 on with no keep rules; no signing, tests, onboarding |
-| **Overall for commercial release** | **~45–50%** | UI-complete, engine not delivered |
+| Widget engine (functioning widgets) | ~95% | M1 + M2 done: 4 widgets render live content and every style option |
+| Reliability (updates, reboot, Doze) | ~80% | Verified on one emulator; no OEM device matrix or 72 h soak yet (P9) |
+| Release readiness | ~35% | Minified release verified; no signing, store assets, privacy policy or real tests |
+| **Overall for release** | **~72%** | Product-complete (M1 + M2), package renamed; Milestone 3 (quality + store) remains |
+
+*Updated 2026-10-12 after Milestone 2. See "Path to production" below.*
 
 ## Strategy
 
@@ -37,23 +39,33 @@ Full detail in [`backend-roadmap.md`](./backend-roadmap.md). Summary:
 
 | Phase | Goal | Blocks |
 |---|---|---|
-| **B1 Consolidation** | One provider set, all registered in the manifest, a provider per shipped widget type | B2, B3 |
-| **B2 Reliable updates** | `AlarmManager.setExactAndAllowWhileIdle` + update receiver wired into `onEnabled`/`onUpdate`/`BootReceiver`; survive Doze + reboot | — |
-| **B3 Multi-instance** | Key config on `appWidgetId` (+ Room migration) so instances differ | — |
-| **B4 Release safety** | `proguard-rules.pro` keep rules for Moshi/Retrofit/Room/Hilt + `proguardFiles`, verified on a real release build | release |
+| ~~**B1 Consolidation**~~ ✅ 2026-10-08 | One provider set, all registered in the manifest, a provider per shipped widget type | B2, B3 |
+| ~~**B2 Reliable updates**~~ ✅ 2026-10-10 | Clock/date tick on schedule and survive Doze + reboot. Met by `TextClock`, no AlarmManager (see backend-roadmap B2) | — |
+| ~~**B3 Multi-instance**~~ ✅ 2026-10-11 | Each placed widget has its own config (`widget_instances` table, lossless v1→v2 migration); tap a widget to edit it | — |
+| ~~**B4 Release safety**~~ ✅ 2026-10-11 | Minified release APK (5.4 MB) verified on device; AGP 9 already applies default + library rules; project rules add Retrofit 2.9 suspend fixes | release |
 
 **Milestone 1 exit:** every v1.0 widget pins, renders live content, updates on
 schedule, survives reboot/Doze, and a minified release APK runs without crashing.
+✅ **Met 2026-10-11.** Weather still has no real data; that is P6.
 
 ---
 
 ## Milestone 2 — v1.0 product completeness (4 core widgets)
 
-### Phase P5 — Customization apply end-to-end
+### ~~Phase P5 — Customization apply end-to-end~~ ✅ 2026-10-12
+**Done:** the widget card is a bitmap drawn from the config (corner radius,
+dot grid, glyph border), and Clock/Date show the subtitle. Verified on a placed
+clock via tap-to-edit. On Android 12+ the launcher's corner radius is the
+minimum. Details: Memory §11.
+
 **Goal:** Editing a widget in the customizer visibly changes that placed instance.
-- **Tasks:** customizer "apply" writes the config for the specific `appWidgetId`
-  (depends on B3), then calls the widget's update path; live preview reads from
-  the same config; confirm color/size/style/format options all round-trip.
+- **Done in B3 (2026-10-11):** saving in the customizer redraws the placed
+  widget (tap-to-edit for one widget, gallery EDIT for its template), and
+  reopening pre-fills the saved values. Verified for accent color.
+- **Tasks:** confirm the other style options (corner radius, dot grid, glyph
+  border, subtitle) are rendered by the home-screen layouts at all. Today the
+  providers apply only the accent color, so those options change the in-app
+  preview but not the placed widget.
 - **Files:** `ui/screens/customizer/WidgetCustomizerViewModel.kt` +
   `WidgetCustomizerScreen.kt` (read/write path only, no redesign), canonical
   providers, `WidgetRepository.kt`.
@@ -61,7 +73,12 @@ schedule, survives reboot/Doze, and a minified release APK runs without crashing
   color within ~3s; reopen customizer → previous selection pre-filled.
 - **Dependencies:** B1, B3.
 
-### Phase P6 — Weather real data (OpenMeteo)
+### ~~Phase P6 — Weather real data (OpenMeteo)~~ ✅ 2026-10-12
+**Done:** Open-Meteo forecast + city search; device location (foreground only,
+no background permission) or a chosen city; cached forecast with its "Updated"
+time when offline; °C/°F applies instantly. Verified in debug and minified
+release, which also exposed and fixed a WorkManager R8 bug. Details: Memory §11.
+
 **Goal:** Weather widget shows real temperature/condition, degrades gracefully.
 - **Tasks:** verify/repair `WeatherRepository` + `WeatherWorker` + Retrofit/Moshi
   path; request `ACCESS_COARSE_LOCATION`; cache last-known weather; map WMO code →
@@ -71,9 +88,14 @@ schedule, survives reboot/Doze, and a minified release APK runs without crashing
   weather provider + layout, manifest permission.
 - **Acceptance:** fresh install shows real temp within ~2 min of placement;
   offline shows cached value with timestamp; unit toggle applies immediately.
-- **Dependencies:** B1, B4 (Moshi keep rules).
+- **Dependencies:** B1, B4 (done). Use Moshi codegen (`@JsonClass(generateAdapter = true)`)
+  for the API models, and re-run the release check in `backend-roadmap.md` "B4 done"
+  once the network call exists.
 
-### Phase P7 — Onboarding + permissions UX
+### ~~Phase P7 — Onboarding + permissions UX~~ ✅ 2026-10-12
+**Done:** 4-page first-run onboarding (replayable from Settings), location
+permission with a graceful denied state, "Tap to set a location" widget state.
+
 **Goal:** A new user understands the app and grants what each widget needs.
 - **Tasks:** first-run onboarding (tracked via a DataStore/Room flag): see → customize
   → add-to-home instructions; "how to add widgets" re-entry from Settings;
@@ -85,19 +107,26 @@ schedule, survives reboot/Doze, and a minified release APK runs without crashing
   a clear "permission needed" state.
 - **Dependencies:** none hard; pairs with P6.
 
-### Phase P8 — Settings drive the engine
+### ~~Phase P8 — Settings drive the engine~~ ✅ 2026-10-12
+**Done:** weather refresh rate (15 min–3 h) re-schedules the worker; refresh-all
+action; dead "haptic" toggle and fake city chips removed; per-template
+`updateIntervalMinutes` deliberately not honored.
+
 **Goal:** Settings values actually affect behavior.
-- **Tasks:** confirm refresh-rate selection feeds the scheduler/WorkManager
-  interval; decide whether per-widget `updateIntervalMinutes` (currently unused)
-  is honored; "force refresh all widgets" action; remove any vestigial controls.
+- **Done in B2 (2026-10-10):** the 24-HOUR FORMAT toggle drives the clock widget
+  and previews.
+- **Tasks:** confirm refresh-rate selection feeds the `WeatherWorker` interval
+  (B2 added no app scheduler; clock/date need none); decide whether per-widget
+  `updateIntervalMinutes` (currently unused) is honored or removed; "force refresh
+  all widgets" action; remove any vestigial controls.
 - **Files:** `ui/screens/settings/SettingsViewModel.kt`,
-  `data/repository/AppPreferencesRepository.kt`, scheduler from B2.
+  `data/repository/AppPreferencesRepository.kt`, `worker/WeatherWorker.kt`.
 - **Acceptance:** change refresh rate → kill/relaunch → value persists and the
   next scheduled interval matches.
-- **Dependencies:** B2.
+- **Dependencies:** P6 (weather worker scheduling).
 
 **Milestone 2 exit:** the 4 core widgets are fully functional, customizable,
-persistent, onboarded, and permission-safe.
+persistent, onboarded, and permission-safe. ✅ **Met 2026-10-12.**
 
 ---
 
@@ -121,8 +150,8 @@ persistent, onboarded, and permission-safe.
 - **Dependencies:** M1–M2.
 
 ### Phase P11 — Play Store release
-- **Tasks:** decide namespace (`com.example.nothingwidget` → `com.sritam.nothingwidget`
-  — a rename refactor) ; release keystore + `signingConfigs` from `local.properties`
+- **Tasks:** ~~decide namespace~~ (done 2026-10-12: `com.necroo69.nothingwidget`);
+  release keystore + `signingConfigs` from `local.properties`
   (never committed); build signed AAB; verify size <8MB; store listing (name,
   descriptions), feature graphic (1024×500), icon (512×512), ≥4 screenshots;
   privacy policy URL; data-safety + content-rating forms; submit.
@@ -130,6 +159,37 @@ persistent, onboarded, and permission-safe.
 - **Dependencies:** P9, P10, B4.
 
 **Milestone 3 exit:** v1.0 live on the Play Store.
+
+---
+
+## Path to production (what is left before v1.0 ships)
+
+Milestones 1 and 2 are done, so the app does everything v1.0 promises. What
+remains is proving it works on real devices and meeting Play Store
+requirements. Estimates assume one developer.
+
+| # | Work | Phase | Size | Blocks launch? |
+|---|---|---|---|---|
+| 1 | Unit tests for ViewModels and repositories (≥50% VM/repo coverage); 8 weather tests exist | P9 | M | Yes |
+| 2 | Instrumented tests: gallery renders, customizer save, onboarding | P9 | M | Yes |
+| 3 | Device matrix: Pixel, Samsung One UI, Xiaomi/aggressive-battery OEM, Android 8 (minSdk 26) | P9 | M | Yes |
+| 4 | 72 h Doze + reboot soak; 1 h zero-crash/ANR run | P9 | S | Yes |
+| 5 | Accessibility: content descriptions, 48 dp targets, contrast (red on dark), TalkBack pass, lint clean | P10 | M | Yes |
+| 6 | Widget font: Space Mono isn't applied inside RemoteViews | P10 | S | No (polish) |
+| 7 | Remove `fallbackToDestructiveMigration()`; export Room schemas | P11 | S | Yes |
+| 8 | ~~Namespace rename~~ — done 2026-10-12: `com.necroo69.nothingwidget` | P11 | S | ✅ Done |
+| 9 | Release keystore + `signingConfigs` from `local.properties`; signed AAB; keep `mapping.txt` | P11 | S | Yes |
+| 10 | Privacy policy URL. Now required: the app sends approximate location to Open-Meteo | P11 | S | Yes |
+| 11 | Play Data safety form (approximate location, shared with Open-Meteo for app functionality, not stored on a server) and content rating | P11 | S | Yes |
+| 12 | Store listing: name, descriptions, 512 px icon, 1024×500 feature graphic, ≥4 screenshots | P11 | M | Yes |
+| 13 | Open-Meteo licence: free v1.0 fits the non-commercial tier. Buy a subscription (or switch provider) before the first paid feature | post-1.0 | Decision | No (v1.0 is free) |
+| 14 | ~~Monetization~~ — decided 2026-10-12: v1.0 free, paid features later (PRD §9) | — | — | ✅ Decided |
+| 15 | Instant battery updates on plug/unplug (needs a live receiver) | post-1.0 | S | No |
+
+**Estimate:** roughly 2–3 weeks of focused work: P9 about 1–1.5 weeks, P10
+3–4 days, P11 3–5 days, plus Play review time (often 1–7 days for a new
+developer account). Items 8 and 14 are settled; v1.0 is free, so 13 waits for
+the first paid feature.
 
 ---
 
@@ -156,10 +216,18 @@ survives reboot, and handles its permission being denied — the same bar as v1.
 1. ~~**Which provider set survives B1**~~ — decided 2026-10-08: keep `widgets/`
    (the registered, tested set) and delete `widget/` (unregistered, placeholder
    data). Quick Toggles / Steps / Audio / Quick Note stay in-app only for now.
-2. **Exact-alarm policy on Android 12+** — exact for clock (needs
-   `USE_EXACT_ALARM`/`SCHEDULE_EXACT_ALARM`), inexact fallback elsewhere.
-3. **Room migration shape for `appWidgetId`** — column on `WidgetConfigEntity`
-   vs a separate instance table; destructive migration acceptable pre-launch.
-4. **Namespace rename** — do it before first publish or stay on `com.example`
-   internally (applicationId is already correct).
+2. ~~**Exact-alarm policy on Android 12+**~~ — decided 2026-10-10: no exact
+   alarms. `TextClock` covers clock/date, and `SCHEDULE_EXACT_ALARM` was removed.
+3. ~~**Room migration shape for `appWidgetId`**~~ — decided 2026-10-11: separate
+   `widget_instances` table with a real (non-destructive) v1→v2 migration.
+   Edit a placed widget by tapping it; gallery edits still reach widgets not
+   customized on their own.
+4. ~~**Namespace rename**~~ — done 2026-10-12: namespace and applicationId are
+   `com.necroo69.nothingwidget` (GitHub username, not a personal name).
 5. **v1.0 scope** — confirm the 4-widget cut (Clock/Date/Battery/Weather).
+6. ~~**Weather location source**~~ — decided 2026-10-12 (M2): approximate device
+   location, read only while the app is open, or a searched city. No background
+   location permission.
+7. ~~**Monetization**~~ — decided 2026-10-12: v1.0 free (no ads, no purchases);
+   paid features later. An Open-Meteo subscription is needed before the first
+   paid feature ships (see "Path to production" #13).

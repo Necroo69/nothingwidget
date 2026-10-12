@@ -19,17 +19,17 @@ record now lives in [`history/implementation_plan.md`](./history/implementation_
 
 | Phase | Original claim | Verified status | Notes |
 |---|---|---|---|
-| 0 — Triage & blockers | done | ⚠ **Partial** | appId fixed, targetSdk 35 / compileSdk 37 (lowering compileSdk to 35 broke the build; restored 2026-10-02), R8 *enabled* but **no keep rules**; namespace still `com.example`; dead nav removed |
+| 0 — Triage & blockers | done | ✅ **Done** (2026-10-12) | package renamed to `com.necroo69.nothingwidget` (namespace + appId), appId fixed, targetSdk 35 / compileSdk 37 (lowering compileSdk to 35 broke the build; restored 2026-10-02), R8 enabled and verified on device (B4, 2026-10-11); namespace still `com.example`; dead nav removed |
 | 1 — Architecture foundation | ✅ done | ✅ **Done** | Hilt + Room + MVVM + typed nav verified in code |
 | 1b — Repo 2 migration | ✅ done | ✅ **Done** | Room/Coil/Retrofit/Moshi integrated; old Repo 1 UI removed |
-| 2 — Widget engine (AlarmManager per-minute / midnight updates) | ✅ done | ❌ **NOT done** | **No AlarmManager exists anywhere.** Clock relies on `TextClock` XML; registered `ClockWidget` sets color only. Battery event-handling ✅ |
-| 3 — Settings persistence | ✅ done | ⚠ **Partial** | Settings persist via Room/prefs; refresh-rate → scheduler wiring unverified (no scheduler exists yet) |
+| 2 — Widget engine (AlarmManager per-minute / midnight updates) | ✅ done | ✅ **Done differently** (2026-10-10) | No AlarmManager, by decision: `TextClock` ticks clock/date. Verified on emulator: minute tick, midnight, timezone, Doze, reboot, app update. Battery is 30-min polling, not event-driven (see Memory §7) |
+| 3 — Settings persistence | ✅ done | ✅ **Done** (2026-10-12) | Settings persist in DataStore; the weather refresh rate drives the WorkManager interval (P8) |
 | 4 — Home/gallery live previews | ✅ done | ✅ **Mostly** | Gallery renders; previews present |
-| 5 — Customization persistence & apply | ✅ done | ⚠ **Partial** | Config saves to Room, but keyed by string id (not `appWidgetId`); apply-to-placed-instance path needs verification |
-| 6 — Onboarding | planned | ❌ **Not started** | no onboarding screen exists |
-| 7 — Weather real data | planned | ⚠ **Partial** | `WeatherRepository` + `WeatherWorker` exist; real-data/offline/permission flow unverified |
+| 5 — Customization persistence & apply | ✅ done | ✅ **Done** (2026-10-12) | Per-widget configs (B3); every style option drawn on the placed widget (P5) |
+| 6 — Onboarding | planned | ✅ **Done** (2026-10-12) | 4-page first run, replay from Settings (P7) |
+| 7 — Weather real data | planned | ✅ **Done** (2026-10-12) | Open-Meteo, device location or city, offline cache, verified in release (P6) |
 | 8 — Accessibility & polish | planned | ❌ **Not started** | |
-| 9 — Testing | planned | ❌ **Not started** | only placeholder tests |
+| 9 — Testing | planned | ⚠ **Started** | 8 weather-mapping unit tests; nothing else yet |
 | 10 — Play Store release | planned | ❌ **Not started** | no signing config / assets |
 
 ## Forward phases (see roadmaps for full detail)
@@ -37,18 +37,18 @@ record now lives in [`history/implementation_plan.md`](./history/implementation_
 These replace the stale "Phase 2–10" plans above. Ordered by dependency/risk.
 
 **Milestone 1 — engine** (`backend-roadmap.md`)
-- **B1** Widget system consolidation — one registered provider set, cover every type
-- **B2** Reliable updates — AlarmManager + receiver; Doze + reboot
-- **B3** Multi-instance configs — key on `appWidgetId` (+ Room migration)
-- **B4** Release-build safety — `proguard-rules.pro` keep rules + `proguardFiles`
+- ~~**B1** Widget system consolidation~~ — done 2026-10-08
+- ~~**B2** Reliable updates~~ — done 2026-10-10 (verified; `TextClock`, no AlarmManager)
+- ~~**B3** Multi-instance configs~~ — done 2026-10-11 (`widget_instances`, tap-to-edit)
+- ~~**B4** Release-build safety~~ — done 2026-10-11 (minified APK verified on device)
 
 **Milestone 2 — v1.0 product** (`roadmap.md`)
-- **P5** Customization apply end-to-end
-- **P6** Weather real data (OpenMeteo + location + offline)
-- **P7** Onboarding + permissions UX
-- **P8** Settings drive the engine
+- ~~**P5** Customization apply end-to-end~~ — done 2026-10-12
+- ~~**P6** Weather real data (OpenMeteo + location + offline)~~ — done 2026-10-12
+- ~~**P7** Onboarding + permissions UX~~ — done 2026-10-12
+- ~~**P8** Settings drive the engine~~ — done 2026-10-12
 
-**Milestone 3 — quality & release** (`roadmap.md`)
+**Milestone 3 — quality & release** (`roadmap.md`, see "Path to production")
 - **P9** Testing · **P10** Accessibility & polish · **P11** Play Store release
 
 **Milestone 4 — expansion (v1.1+)**: world clock, step, audio, quick toggles,

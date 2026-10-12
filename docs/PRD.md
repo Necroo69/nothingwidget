@@ -36,19 +36,26 @@ quick note, date.
 
 **Known broken / incomplete (verified in code)**
 - ~~**Two provider packages coexist.**~~ Fixed 2026-10-08 (B1): only `widgets/`
-  remains (Clock, Date, Battery, Weather, all registered). `ClockWidget` relies on
-  `TextClock` XML for the time.
-- **No AlarmManager / update scheduler exists.** `SCHEDULE_EXACT_ALARM` is
-  declared but unused. Clock/date have no app-driven tick.
-- **Release build unsafe.** `isMinifyEnabled = true` with no `proguard-rules.pro`
-  and no `proguardFiles` — Moshi/Retrofit/Room/Hilt likely crash under R8.
-- **Configs keyed by string id**, not `appWidgetId` — no independent
-  multi-instance configs.
+  remains (Clock, Date, Battery, Weather, all registered).
+- ~~**No AlarmManager / update scheduler exists.**~~ Resolved 2026-10-10 (B2):
+  none is needed. Clock and date are `TextClock`s ticked by the launcher, verified
+  through Doze, reboot, midnight and app update. The unused
+  `SCHEDULE_EXACT_ALARM` permission was removed.
+- ~~**Release build unsafe.**~~ Fixed 2026-10-11 (B4): the minified release APK
+  was verified on a device. AGP 9 already applied the default and library rules;
+  the project rules add Retrofit 2.9's missing suspend-function rules.
+- ~~**Configs keyed by string id**~~ Fixed 2026-10-11 (B3): each placed widget
+  has its own config, keyed by `appWidgetId`.
 - **Coverage gaps.** Quick Toggles, Step Tracker, Audio Player and Quick Note
   have no home-screen widget. Their gallery cards say "IN-APP ONLY" instead of
   offering a pin (B1 decision, 2026-10-08).
-- **No onboarding, no real tests.** Namespace is still `com.example.nothingwidget`
-  (applicationId is correctly `com.sritam.nothingwidget`).
+- ~~**No onboarding.**~~ Added 2026-10-12 (P7).
+- ~~**Weather showed fake data; style options only changed the preview.**~~ Fixed
+  2026-10-12 (P5, P6): real Open-Meteo weather; every style option reaches the
+  placed widget.
+- **No real test suite yet** (8 weather unit tests).
+- ~~**Namespace `com.example`**~~ Renamed 2026-10-12: namespace and applicationId
+  are both `com.necroo69.nothingwidget` (GitHub username, not a personal name).
 
 ## 3. Target users
 
@@ -78,9 +85,10 @@ functional, customizable, persistent, and reliable. The remaining six types
 
 ## 5. Functional requirements
 
-- **FR-01 Updates:** clock via `AlarmManager.setExactAndAllowWhileIdle` (not
-  `updatePeriodMillis`); date reschedules at midnight; battery event-driven;
-  weather via WorkManager. All re-armed on `BOOT_COMPLETED`.
+- **FR-01 Updates:** clock and date via `TextClock` in the widget layout (not
+  `updatePeriodMillis`, not exact alarms; see Architecture §3); battery via
+  `updatePeriodMillis` (30 min); weather via WorkManager, enqueued on
+  `BOOT_COMPLETED`.
 - **FR-02 Persistence:** Room; configs keyed by `appWidgetId`; survive process
   death and reboot.
 - **FR-03 Content:** every placed widget renders real content (time/date/%/temp),
@@ -89,12 +97,13 @@ functional, customizable, persistent, and reliable. The remaining six types
   Composables; typed routes (already satisfied).
 - **FR-05 Play Store compliance:** R8 with correct keep rules; signed release;
   privacy policy; `targetSdk` 35 (Play minimum) with `compileSdk` 37 (needed by
-  AndroidX; do not lower it to match targetSdk); decide namespace.
+  AndroidX; do not lower it to match targetSdk); package `com.necroo69.nothingwidget`.
 
 ## 6. Non-functional requirements
 
 - Widget update < 100ms; cold start < 1.5s.
-- No continuous background service; AlarmManager + WorkManager only.
+- No continuous background service and no per-minute wakeups; `TextClock` +
+  WorkManager only.
 - Survive 72h Doze and reboot.
 - minSdk 26; APK < 8MB.
 - Content descriptions on all interactive elements and widgets.
@@ -118,9 +127,14 @@ Downloads 5,000+ · Rating ≥4.4 · D1 retention ≥55% · D7 ≥25% · crash-f
 
 ## 9. Monetization
 
-Free core (Clock/Date/Battery) + one-time premium unlock (~$1.49) for Weather,
-full color/font options, and future widgets. **No ads.** Alternative: fully free
-+ tip jar.
+**Decided 2026-10-12: v1.0 ships free** — every feature, no ads, no in-app
+purchases. Paid features come later (v1.1+), most likely as a one-time premium
+unlock for new widgets and extra styling. Which features are paid is not decided.
+
+**Constraint:** weather uses Open-Meteo, whose free API is for non-commercial
+use. A free, ad-free v1.0 fits that. Before the first paid feature ships, either
+buy an Open-Meteo API subscription (the app as a whole becomes commercial, even if
+weather itself stays free) or move weather to a provider whose terms allow it.
 
 ## 10. Future features
 
