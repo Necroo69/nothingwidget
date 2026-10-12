@@ -8,12 +8,12 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nothingwidget"
+    namespace = "com.necroo69.nothingwidget"
     // core 1.19 / lifecycle 2.11 require compileSdk 37; compileSdk need not equal targetSdk.
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.sritam.nothingwidget"
+        applicationId = "com.necroo69.nothingwidget"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

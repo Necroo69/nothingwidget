@@ -8,8 +8,8 @@ Value
 Repo
 https://github.com/sritampattanaik/nothingwidget1
 Package ID
-com.example.nothingwidget
- ← MUST CHANGE before Play Store
+com.necroo69.nothingwidget
+ (namespace + applicationId, renamed 2026-10-12; see §12)
 App Name
 nothingwidget (in strings.xml — lowercase, fix this)
 Version
@@ -668,4 +668,17 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 - Widget text uses the launcher's default font: `android:fontFamily="@font/space_mono_*"` is not applied inside RemoteViews here. P10.
 - Battery refreshes every 30 min or on app open, not on plug/unplug.
 - `fallbackToDestructiveMigration()` must go before launch.
+
+## 12. Maintenance Notes (2026-10-12) — package rename and monetization
+
+### Done: package renamed to `com.necroo69.nothingwidget`
+- **Decision (user):** use the GitHub username (`Necroo69`), not a personal name. Both the Kotlin namespace (was `com.example.nothingwidget`) and the `applicationId` (was `com.sritam.nothingwidget`) are now `com.necroo69.nothingwidget`.
+- **Change:** moved `app/src/{main,test,androidTest}/java/com/example/nothingwidget` to `com/necroo69/nothingwidget` and replaced every `com.example.nothingwidget` / `com.sritam.nothingwidget` in sources, manifests and `app/build.gradle.kts`. The intent action strings (`…action.EDIT_WIDGET` etc.) moved with them. DataStore and Room file names don't contain the package, so nothing else changed.
+- **Effect:** a new applicationId is a different app to Android. Test installs of `com.sritam.nothingwidget` must be uninstalled; their widgets and data don't carry over. No real users are affected (never published).
+- **Gotcha:** the first build after the move failed with "Could not find class file for 'com.example.nothingwidget.NothingWidgetApp'" (stale Hilt/KSP output). `./gradlew clean` fixes it.
+- **Verified (emulator):** fresh install → onboarding → pin a weather widget from the gallery (first-widget `onEnabled` path: periodic job scheduled at 30 min) → "Tap to set a location" → Settings → Berlin → real forecast on the widget. Debug and release build; 9 unit tests pass.
+
+### Decided: v1.0 is free
+- No ads and no purchases in v1.0. Paid features come later (v1.1+); which ones isn't decided.
+- Open-Meteo's free tier is non-commercial, which a free, ad-free app fits. **Before the first paid feature ships**, buy an Open-Meteo subscription or switch weather provider. See PRD §9 and roadmap "Path to production" #13.
 

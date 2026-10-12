@@ -32,8 +32,8 @@ roadmap is based on a direct inspection of the code on branch
   `DATE` exists only in `widgets/`, `STEP_TRACKER`/`QUICK_TOGGLES`/`AUDIO_PLAYER`
   only in `widget/`, and `QUICK_NOTE` has no provider in either (gallery falls
   back to `ClockWidget`).
-- **Namespace** is still `com.example.nothingwidget`; `applicationId` is
-  `com.sritam.nothingwidget`.
+- ~~**Namespace** is still `com.example.nothingwidget`.~~ Renamed 2026-10-12 to
+  `com.necroo69.nothingwidget` (namespace and `applicationId`).
 
 ### Fixed since (2026-10-02) — see `docs/Memory.md` §7
 - `compileSdk` restored to 37 (35 broke `assembleDebug`).
@@ -377,8 +377,7 @@ Rules can be drafted early; final verification is the last step.
 
 ## Cross-cutting / deferred (tracked, not scheduled here)
 
-- Namespace is still `com.example.nothingwidget`; renaming is a larger refactor —
-  track separately, not part of the widget engine.
+- ~~Namespace rename~~ — done 2026-10-12 (`com.necroo69.nothingwidget`).
 - `updateIntervalMinutes` on the config exists but is unused; B2 should decide
   whether the scheduler honors it (per-widget refresh cadence) or ignores it.
 - Runtime permissions for step (`ACTIVITY_RECOGNITION`), audio

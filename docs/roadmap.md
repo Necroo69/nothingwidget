@@ -18,7 +18,7 @@ direct code inspection of branch `claude/project-status-release-732b84`
 | Widget engine (functioning widgets) | ~95% | M1 + M2 done: 4 widgets render live content and every style option |
 | Reliability (updates, reboot, Doze) | ~80% | Verified on one emulator; no OEM device matrix or 72 h soak yet (P9) |
 | Release readiness | ~35% | Minified release verified; no signing, store assets, privacy policy or real tests |
-| **Overall for commercial release** | **~70%** | Product-complete (M1 + M2); Milestone 3 (quality + store) remains |
+| **Overall for release** | **~72%** | Product-complete (M1 + M2), package renamed; Milestone 3 (quality + store) remains |
 
 *Updated 2026-10-12 after Milestone 2. See "Path to production" below.*
 
@@ -150,8 +150,8 @@ persistent, onboarded, and permission-safe. ✅ **Met 2026-10-12.**
 - **Dependencies:** M1–M2.
 
 ### Phase P11 — Play Store release
-- **Tasks:** decide namespace (`com.example.nothingwidget` → `com.sritam.nothingwidget`
-  — a rename refactor) ; release keystore + `signingConfigs` from `local.properties`
+- **Tasks:** ~~decide namespace~~ (done 2026-10-12: `com.necroo69.nothingwidget`);
+  release keystore + `signingConfigs` from `local.properties`
   (never committed); build signed AAB; verify size <8MB; store listing (name,
   descriptions), feature graphic (1024×500), icon (512×512), ≥4 screenshots;
   privacy policy URL; data-safety + content-rating forms; submit.
@@ -177,18 +177,19 @@ requirements. Estimates assume one developer.
 | 5 | Accessibility: content descriptions, 48 dp targets, contrast (red on dark), TalkBack pass, lint clean | P10 | M | Yes |
 | 6 | Widget font: Space Mono isn't applied inside RemoteViews | P10 | S | No (polish) |
 | 7 | Remove `fallbackToDestructiveMigration()`; export Room schemas | P11 | S | Yes |
-| 8 | Decide namespace (`com.example` → `com.sritam`) and refactor if renaming | P11 | S | Decision |
+| 8 | ~~Namespace rename~~ — done 2026-10-12: `com.necroo69.nothingwidget` | P11 | S | ✅ Done |
 | 9 | Release keystore + `signingConfigs` from `local.properties`; signed AAB; keep `mapping.txt` | P11 | S | Yes |
 | 10 | Privacy policy URL. Now required: the app sends approximate location to Open-Meteo | P11 | S | Yes |
 | 11 | Play Data safety form (approximate location, shared with Open-Meteo for app functionality, not stored on a server) and content rating | P11 | S | Yes |
 | 12 | Store listing: name, descriptions, 512 px icon, 1024×500 feature graphic, ≥4 screenshots | P11 | M | Yes |
-| 13 | Open-Meteo licence: the free API is non-commercial. A paid premium unlock needs an Open-Meteo subscription, or ship v1.0 free / tip jar | P11 | Decision | Yes, if paid |
-| 14 | Monetization: one-time premium unlock vs free + tip jar (PRD §9) | P11 | Decision | Yes |
+| 13 | Open-Meteo licence: free v1.0 fits the non-commercial tier. Buy a subscription (or switch provider) before the first paid feature | post-1.0 | Decision | No (v1.0 is free) |
+| 14 | ~~Monetization~~ — decided 2026-10-12: v1.0 free, paid features later (PRD §9) | — | — | ✅ Decided |
 | 15 | Instant battery updates on plug/unplug (needs a live receiver) | post-1.0 | S | No |
 
 **Estimate:** roughly 2–3 weeks of focused work: P9 about 1–1.5 weeks, P10
 3–4 days, P11 3–5 days, plus Play review time (often 1–7 days for a new
-developer account). Decide 8, 13 and 14 first, because they change P11.
+developer account). Items 8 and 14 are settled; v1.0 is free, so 13 waits for
+the first paid feature.
 
 ---
 
@@ -221,11 +222,12 @@ survives reboot, and handles its permission being denied — the same bar as v1.
    `widget_instances` table with a real (non-destructive) v1→v2 migration.
    Edit a placed widget by tapping it; gallery edits still reach widgets not
    customized on their own.
-4. **Namespace rename** — do it before first publish or stay on `com.example`
-   internally (applicationId is already correct).
+4. ~~**Namespace rename**~~ — done 2026-10-12: namespace and applicationId are
+   `com.necroo69.nothingwidget` (GitHub username, not a personal name).
 5. **v1.0 scope** — confirm the 4-widget cut (Clock/Date/Battery/Weather).
 6. ~~**Weather location source**~~ — decided 2026-10-12 (M2): approximate device
    location, read only while the app is open, or a searched city. No background
    location permission.
-7. **Open-Meteo licence vs monetization** — the free API is non-commercial; see
-   "Path to production" #13–14.
+7. ~~**Monetization**~~ — decided 2026-10-12: v1.0 free (no ads, no purchases);
+   paid features later. An Open-Meteo subscription is needed before the first
+   paid feature ships (see "Path to production" #13).

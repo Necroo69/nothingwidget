@@ -8,7 +8,7 @@ reflects the code.
 ## 1. Current architecture (as-is, verified)
 
 ```
-com.example.nothingwidget/              # namespace still com.example; appId = com.sritam.nothingwidget
+com.necroo69.nothingwidget/             # namespace = applicationId (renamed 2026-10-12)
 ├── NothingWidgetApp.kt                 # @HiltAndroidApp
 ├── MainActivity.kt                     # @AndroidEntryPoint, hosts NavGraph, edge-to-edge
 ├── BootReceiver.kt                     # BOOT_COMPLETED: pings widgets once, enqueues WeatherWorker
