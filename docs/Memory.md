@@ -8,8 +8,8 @@ Value
 Repo
 https://github.com/sritampattanaik/nothingwidget1
 Package ID
-com.example.nothingwidget
- ← MUST CHANGE before Play Store
+com.necroo69.nothingwidget
+ (namespace + applicationId, renamed 2026-10-12; see §12)
 App Name
 nothingwidget (in strings.xml — lowercase, fix this)
 Version
@@ -565,7 +565,7 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
 
 ### Known, not fixed here (needs a design decision)
 - ~~The customizer saves by preset id, but providers read hard-coded ids.~~ Fixed 2026-10-11 by B3, see §9.
-- `WeatherWorker` is enqueued only from `BootReceiver`, so after a fresh install it never runs until the first reboot. It currently has no data to fetch, so the user sees no difference. Schedule it from `WeatherWidget.onEnabled`/`onDisabled` when Phase 7 adds real weather.
+- ~~`WeatherWorker` is enqueued only from `BootReceiver`.~~ Fixed 2026-10-12 (M2): `WeatherScheduler` schedules it from `WeatherWidget.onEnabled`, app start, boot and the Settings interval, see §11.
 
 ## 8. Maintenance Notes (2026-10-10)
 
@@ -602,3 +602,83 @@ The gap between "looks good in screenshots" and "works reliably on a stranger's 
   - `adb shell am broadcast` of `APPWIDGET_UPDATE` is refused (protected broadcast). To force a redraw, use the app (customizer save, 24h toggle) or reboot.
   - The pin callback must be a **mutable** PendingIntent (FLAG_MUTABLE on API 31+), or the system cannot add EXTRA_APPWIDGET_ID.
 - **Still open:** only the accent color reaches home-screen widgets (roadmap P5). `fallbackToDestructiveMigration()` should be removed before launch.
+
+## 10. Maintenance Notes (2026-10-11)
+
+### Done: B4 release-build safety
+- **Finding:** AGP 9.3.1 already applies `proguard-android-optimize.txt` and merges `src/main/keepRules/*.keep` plus all library consumer rules. The old "R8 with no keep rules" alarm was out of date. The minified release APK runs fine: 5.4 MB, against 27.8 MB for debug.
+- **Fix:** `app/src/main/keepRules/rules.keep` adds Retrofit 2.9's missing R8 full-mode rules for `suspend` service methods. Without them, P6's weather call would fail in release with a `ParameterizedType` ClassCastException. Delete them after upgrading Retrofit to ≥ 2.10.
+- **Verified (emulator, release APK):** all screens, the database, the 24h setting, tap-to-edit, pinning, WorkManager and reboot. Full table in `backend-roadmap.md` "B4 done".
+- **How to test a release build locally** (no signing config exists yet; P11 adds one):
+  ```
+  ./gradlew assembleRelease
+  apksigner sign --ks ~/.android/debug.keystore --ks-key-alias androiddebugkey \
+    --ks-pass pass:android --key-pass pass:android \
+    --out app-release-signed.apk app/build/outputs/apk/release/app-release-unsigned.apk
+  adb install -r app-release-signed.apk
+  ```
+  It installs over a debug build (same debug key) and keeps app data. `run-as` does not work on it (not debuggable).
+- **Gotchas:**
+  - `am force-stop` cancels the app's WorkManager jobs until it next starts. Launch the app before `cmd jobscheduler run -f <pkg> <id>`.
+  - The pin dialog binds a widget id before you confirm, so an id in `dumpsys appwidget` does not prove the widget was placed.
+- **For P11:** keep `app/build/outputs/mapping/release/mapping.txt` for every published build and upload it to Play Console, or crash stack traces stay obfuscated.
+
+## 11. Maintenance Notes (2026-10-12) — Milestone 2 (P5–P8)
+
+### Done: P5 every style option reaches the placed widget
+- **Problem:** providers applied only the accent color. Corner radius, dot grid, glyph border and subtitle changed the in-app preview only.
+- **Change:** each widget layout is now a `FrameLayout` with an `ImageView` (`widget_background`) behind the content. `WidgetBackground.kt` draws the card as a bitmap at the widget's reported size (corner radius, 5% dot grid, accent border at 50% or neutral outline, red glyph dot), matching `NothingGlassCard`. `NothingWidgetProvider.onAppWidgetOptionsChanged` redraws on resize. Clock and Date show the custom subtitle (hidden when blank). The battery bar takes the accent color on API 31+.
+- **Why a bitmap:** RemoteViews can't change a drawable's corner radius or stroke color at runtime below API 31. Bitmaps are capped at ~2.5 MB each.
+- **Limit found:** Android 12+ launchers clip every widget to `system_app_widget_background_radius`. A smaller radius can't show, and drawing one let the clip cut through the border. The card is never drawn below the system radius, and the customizer says so under the slider.
+- **Not exposed:** `isMonochrome` and `transparencyPercent` exist in the model and DB but have no control in the customizer, so nothing renders them.
+
+### Done: P6 real weather (Open-Meteo)
+- **Change:** `data/remote/OpenMeteoApi.kt` (Retrofit + Moshi codegen) for forecast and city search. `WeatherRepository` is now real: the location and the last forecast (JSON, always °C) live in the `weather` DataStore; `weatherState` maps them to `WeatherInfo` with the user's unit and a status (`NO_LOCATION`, `NO_DATA`, `READY`). The widget shows city, temperature, condition, high/low and "Updated <time>". With no location it says "Tap to set a location" and opens Settings.
+- **Location (decision):** two sources, user's choice: approximate device location (`ACCESS_COARSE_LOCATION`, `LocationManager` via `LocationManagerCompat`, no Play services) or a city search. **No background location:** the device fix is only taken while the app is open (`WeatherScheduler.onAppForeground`); the worker reuses the saved coordinates. This avoids `ACCESS_BACKGROUND_LOCATION` and its Play policy review. Reverse geocoding uses `Geocoder` and falls back to "My location".
+- **Build change:** Moshi's kapt codegen (1.15.1) failed with "Could not parse metadata" on Kotlin 2.2. Moshi codegen now runs on **KSP** (`ksp(libs.moshi.kotlin.codegen)`, KSP `2.2.10-2.0.2`, Moshi 1.15.2). Room stays on kapt.
+- **Release bug found and fixed:** in the minified build every WorkManager run failed with `WM-WorkerWrapper: Could not create Input Merger androidx.work.OverwritingInputMerger`. WorkManager 2.9's bundled rule keeps the class but, in R8 full mode, not its no-arg constructor. `rules.keep` now keeps `<init>()` of every `InputMerger`. B4's release check missed it because no worker actually ran then. **Always check a real worker run in release.**
+- **Licensing:** Open-Meteo's free API is for non-commercial use. A paid release (PRD §9 premium unlock) needs an Open-Meteo API subscription; see roadmap "Path to production".
+
+### Done: P7 onboarding + permissions
+- First launch shows a 4-page onboarding (intro, customize, add to home, weather location). Flag: `has_completed_onboarding` in the settings DataStore. Skip and Get Started both set it. Settings → "HOW TO ADD WIDGETS" replays it and returns to Settings. A widget tap skips onboarding.
+- Denying location shows "Location permission denied. Search for a city instead." and never crashes; the weather widget stays in "Tap to set a location".
+- When a launcher can't pin, the toast now explains how to add the widget by hand.
+
+### Done: P8 settings drive the engine
+- **Weather refresh rate** (15 min / 30 min / 1 h / 3 h, default 30 min) → `WeatherScheduler.sync(intervalChanged = true)` re-enqueues with `ExistingPeriodicWorkPolicy.UPDATE`. Periodic work runs only while a weather widget is placed (`onEnabled`/`onDisabled`), needs a network, and is re-synced on app start and boot.
+- **°C/°F** redraws weather widgets from the cache, no new request.
+- **REFRESH ALL WIDGETS NOW** redraws every provider and queues a weather fetch (runs when a network is available).
+- **Removed vestigial controls:** "Haptic matrix feedback" (nothing read it) and the four hard-coded city chips. The per-template `updateIntervalMinutes` column is **not honored** (decision): weather is one global feed and clocks need no interval. The column stays to avoid a migration.
+- `SettingsViewModel` talks to widgets through the `WidgetEngine` interface (`AndroidWidgetEngine` in production), which P9 tests can fake.
+
+### Also fixed
+- Status-bar icons were dark-on-black in the app whenever the system was in light mode. `MainActivity` now sets the system bar style from the app's theme. The customizer, card builder and glyph studio headers now pad below the status bar.
+- Gallery/customizer/studio previews show real weather instead of a hard-coded London.
+
+### Verified (Pixel_10_Pro emulator, API 37)
+- Debug: onboarding pages; deny → message; allow → Berlin from `emu geo fix`, real temperature within seconds; city search (Tokyo, Paris); °F applies instantly (14° → 57°); refresh interval 30 min → 1 h moves the job's delay to ~54 min; offline refresh keeps the cached forecast and its time, and the queued fetch runs when the network returns; tap-to-edit: radius, dot grid off, glyph off and subtitle "HELLO M2" all reached the placed clock; `pm clear` → onboarding → skip → weather widget "Tap to set a location" → tap opens Settings; replay from Settings returns to Settings; relaunch skips onboarding.
+- Release (minified, 5.5 MB, debug-signed): city search and forecast work (Moshi/Retrofit survive R8); WorkManager runs after the keep-rule fix; reboot without opening the app → all widgets styled, weather refreshed at boot.
+- Unit tests: `WeatherMappingTest` (8 tests: statuses, unit conversion, hourly steps, cache/location matching, WMO codes).
+
+### Testing tips
+- `adb emu geo fix <lon> <lat>` sets the emulator GPS. The fused provider may need a couple of fixes sent before `getCurrentLocation` returns; real devices answer from a recent cached fix (≤10 min) instantly.
+- Under Git Bash, prefix adb commands that take device paths with `MSYS_NO_PATHCONV=1`, or `/sdcard/...` gets rewritten to a Windows path.
+
+### Still open (see roadmap "Path to production")
+- Widget text uses the launcher's default font: `android:fontFamily="@font/space_mono_*"` is not applied inside RemoteViews here. P10.
+- Battery refreshes every 30 min or on app open, not on plug/unplug.
+- `fallbackToDestructiveMigration()` must go before launch.
+
+## 12. Maintenance Notes (2026-10-12) — package rename and monetization
+
+### Done: package renamed to `com.necroo69.nothingwidget`
+- **Decision (user):** use the GitHub username (`Necroo69`), not a personal name. Both the Kotlin namespace (was `com.example.nothingwidget`) and the `applicationId` (was `com.sritam.nothingwidget`) are now `com.necroo69.nothingwidget`.
+- **Change:** moved `app/src/{main,test,androidTest}/java/com/example/nothingwidget` to `com/necroo69/nothingwidget` and replaced every `com.example.nothingwidget` / `com.sritam.nothingwidget` in sources, manifests and `app/build.gradle.kts`. The intent action strings (`…action.EDIT_WIDGET` etc.) moved with them. DataStore and Room file names don't contain the package, so nothing else changed.
+- **Effect:** a new applicationId is a different app to Android. Test installs of `com.sritam.nothingwidget` must be uninstalled; their widgets and data don't carry over. No real users are affected (never published).
+- **Gotcha:** the first build after the move failed with "Could not find class file for 'com.example.nothingwidget.NothingWidgetApp'" (stale Hilt/KSP output). `./gradlew clean` fixes it.
+- **Verified (emulator):** fresh install → onboarding → pin a weather widget from the gallery (first-widget `onEnabled` path: periodic job scheduled at 30 min) → "Tap to set a location" → Settings → Berlin → real forecast on the widget. Debug and release build; 9 unit tests pass.
+
+### Decided: v1.0 is free
+- No ads and no purchases in v1.0. Paid features come later (v1.1+); which ones isn't decided.
+- Open-Meteo's free tier is non-commercial, which a free, ad-free app fits. **Before the first paid feature ships**, buy an Open-Meteo subscription or switch weather provider. See PRD §9 and roadmap "Path to production" #13.
+
