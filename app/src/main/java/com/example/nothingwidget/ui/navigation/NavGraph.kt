@@ -18,7 +18,6 @@ import com.example.nothingwidget.data.repository.QuickSettingsRepository
 import com.example.nothingwidget.data.repository.StepTrackerRepository
 import com.example.nothingwidget.data.repository.WeatherRepository
 import com.example.nothingwidget.data.repository.WidgetRepository
-import com.example.nothingwidget.domain.model.WidgetType
 import com.example.nothingwidget.ui.screens.customizer.WidgetCustomizerScreen
 import com.example.nothingwidget.ui.screens.customizer.WidgetCustomizerViewModel
 import com.example.nothingwidget.ui.screens.gallery.WidgetGalleryScreen
@@ -29,19 +28,22 @@ import com.example.nothingwidget.ui.screens.settings.SettingsScreen
 import com.example.nothingwidget.ui.screens.settings.SettingsViewModel
 import com.example.nothingwidget.ui.screens.studio.WidgetStudioScreen
 import com.example.nothingwidget.ui.screens.studio.WidgetStudioViewModel
-import com.example.nothingwidget.widgets.requestWidgetUpdate
+import com.example.nothingwidget.ui.screens.onboarding.OnboardingScreen
+import com.example.nothingwidget.widgets.AndroidWidgetEngine
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
-    // Set when the app was opened by tapping a placed widget: (appWidgetId, fallback template id).
-    editPlacedWidget: Pair<Int, String>? = null
+    // True on first run: start at the onboarding screen instead of the gallery.
+    startOnboarding: Boolean,
+    // Set when the app was opened by tapping a placed widget.
+    launchTarget: LaunchTarget? = null
 ) {
     val context = LocalContext.current
 
     val db = remember { AppDatabase.getInstance(context) }
     val widgetRepo = remember { WidgetRepository(db.widgetConfigDao(), db.widgetInstanceDao()) }
-    val weatherRepo = remember { WeatherRepository() }
+    val weatherRepo = remember { WeatherRepository(context) }
     val batteryRepo = remember { BatteryRepository(context) }
     val quickSettingsRepo = remember { QuickSettingsRepository() }
     val stepRepo = remember { StepTrackerRepository(db.stepDao()) }
@@ -59,19 +61,32 @@ fun AppNavGraph(
         )
     }
 
-    val customizerViewModel = remember { WidgetCustomizerViewModel(widgetRepo, batteryRepo) }
-    val studioViewModel = remember { WidgetStudioViewModel(widgetRepo, batteryRepo) }
+    val customizerViewModel = remember { WidgetCustomizerViewModel(widgetRepo, batteryRepo, weatherRepo) }
+    val studioViewModel = remember { WidgetStudioViewModel(widgetRepo, batteryRepo, weatherRepo) }
     val glyphViewModel = remember { GlyphStudioViewModel() }
-    val settingsViewModel = remember {
-        SettingsViewModel(appPrefsRepo) {
-            requestWidgetUpdate(context.applicationContext, WidgetType.DIGITAL_CLOCK)
-        }
-    }
+    val settingsViewModel = remember { SettingsViewModel(appPrefsRepo, weatherRepo, AndroidWidgetEngine(context)) }
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Gallery.route
+        // A widget tap skips onboarding: the user has clearly already added a widget.
+        startDestination = if (startOnboarding && launchTarget == null) Screen.Onboarding.route else Screen.Gallery.route
     ) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                settingsViewModel = settingsViewModel,
+                onFinished = {
+                    // Replayed from Settings: go back there. First run: replace with the gallery.
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(Screen.Gallery.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+
         composable(Screen.Gallery.route) {
             WidgetGalleryScreen(
                 viewModel = galleryViewModel,
@@ -119,15 +134,19 @@ fun AppNavGraph(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 viewModel = settingsViewModel,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onOpenOnboarding = { navController.navigate(Screen.Onboarding.route) }
             )
         }
     }
 
     // Runs after NavHost has set its graph, so navigate() can resolve the route.
-    LaunchedEffect(editPlacedWidget) {
-        editPlacedWidget?.let { (appWidgetId, presetId) ->
-            navController.navigate(Screen.Customizer.createRoute(presetId, appWidgetId))
+    LaunchedEffect(launchTarget) {
+        when (launchTarget) {
+            is LaunchTarget.EditWidget ->
+                navController.navigate(Screen.Customizer.createRoute(launchTarget.presetId, launchTarget.appWidgetId))
+            LaunchTarget.WeatherLocation -> navController.navigate(Screen.Settings.route)
+            null -> Unit
         }
     }
 }

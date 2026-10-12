@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -73,6 +74,7 @@ fun WidgetCustomizerScreen(
     val configState by viewModel.config.collectAsStateWithLifecycle()
     val config = configState
     val batteryInfo by viewModel.batteryInfo.collectAsStateWithLifecycle()
+    val weatherInfo by viewModel.weatherInfo.collectAsStateWithLifecycle()
     val placedWidgetId by viewModel.placedWidgetId.collectAsStateWithLifecycle()
 
     val colorOptions = listOf(
@@ -88,6 +90,7 @@ fun WidgetCustomizerScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -139,6 +142,7 @@ fun WidgetCustomizerScreen(
 
                 InteractiveWidgetView(
                     config = config,
+                    weatherInfo = weatherInfo,
                     batteryInfo = batteryInfo,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -199,6 +203,13 @@ fun WidgetCustomizerScreen(
                         inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 )
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    Text(
+                        text = "On the home screen, corners can't be smaller than your launcher's own widget corners.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+                }
 
                 // Switches Row
                 Row(

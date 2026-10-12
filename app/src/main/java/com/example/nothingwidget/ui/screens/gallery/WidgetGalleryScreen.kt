@@ -368,9 +368,9 @@ fun requestPinWidget(context: Context, config: NothingWidgetConfig) {
         val pinRequested = appWidgetManager.isRequestPinAppWidgetSupported &&
             appWidgetManager.requestPinAppWidget(myProvider, null, WidgetPinnedReceiver.successCallback(context, config.id))
         if (!pinRequested) {
-            Toast.makeText(context, "Auto-pin not supported on this launcher", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Your launcher can't add widgets from apps. Long-press your home screen, open Widgets and find Nothing Widgets.", Toast.LENGTH_LONG).show()
         }
     } else {
-        Toast.makeText(context, "Auto-pin not supported on this launcher", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Your launcher can't add widgets from apps. Long-press your home screen, open Widgets and find Nothing Widgets.", Toast.LENGTH_LONG).show()
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -59,6 +60,7 @@ fun WidgetStudioScreen(
 ) {
     val state by viewModel.builderState.collectAsStateWithLifecycle()
     val batteryInfo by viewModel.batteryInfo.collectAsStateWithLifecycle()
+    val weatherInfo by viewModel.weatherInfo.collectAsStateWithLifecycle()
 
     val colors = listOf("#D71921", "#FFFFFF", "#FFD600", "#00E676")
 
@@ -79,6 +81,7 @@ fun WidgetStudioScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -118,6 +121,7 @@ fun WidgetStudioScreen(
 
             InteractiveWidgetView(
                 config = tempPreviewConfig,
+                weatherInfo = weatherInfo,
                 batteryInfo = batteryInfo,
                 modifier = Modifier
                     .fillMaxWidth()

@@ -10,4 +10,14 @@ sealed class Screen(val route: String) {
     object Studio : Screen("studio")
     object Glyph : Screen("glyph")
     object Settings : Screen("settings")
+    object Onboarding : Screen("onboarding")
+}
+
+/** Where the app should open when it was launched from a home-screen widget. */
+sealed interface LaunchTarget {
+    /** Customize one placed widget. [presetId] is its provider's default template. */
+    data class EditWidget(val appWidgetId: Int, val presetId: String) : LaunchTarget
+
+    /** A weather widget with no location was tapped. */
+    data object WeatherLocation : LaunchTarget
 }

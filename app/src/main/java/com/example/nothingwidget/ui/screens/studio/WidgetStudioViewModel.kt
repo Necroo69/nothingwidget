@@ -3,9 +3,11 @@ package com.example.nothingwidget.ui.screens.studio
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nothingwidget.data.repository.BatteryRepository
+import com.example.nothingwidget.data.repository.WeatherRepository
 import com.example.nothingwidget.data.repository.WidgetRepository
 import com.example.nothingwidget.domain.model.BatteryInfo
 import com.example.nothingwidget.domain.model.NothingWidgetConfig
+import com.example.nothingwidget.domain.model.WeatherInfo
 import com.example.nothingwidget.domain.model.WidgetSize
 import com.example.nothingwidget.domain.model.WidgetType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +28,8 @@ data class StudioBuilderState(
 
 class WidgetStudioViewModel(
     private val widgetRepository: WidgetRepository,
-    batteryRepository: BatteryRepository
+    batteryRepository: BatteryRepository,
+    weatherRepository: WeatherRepository
 ) : ViewModel() {
 
     private val _builderState = MutableStateFlow(StudioBuilderState())
@@ -36,6 +39,12 @@ class WidgetStudioViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = batteryRepository.currentBatteryInfo()
+    )
+
+    val weatherInfo: StateFlow<WeatherInfo> = weatherRepository.weatherState.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = WeatherInfo()
     )
 
     fun setWidgetType(type: WidgetType) {

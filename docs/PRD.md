@@ -49,8 +49,12 @@ quick note, date.
 - **Coverage gaps.** Quick Toggles, Step Tracker, Audio Player and Quick Note
   have no home-screen widget. Their gallery cards say "IN-APP ONLY" instead of
   offering a pin (B1 decision, 2026-10-08).
-- **No onboarding, no real tests.** Namespace is still `com.example.nothingwidget`
-  (applicationId is correctly `com.sritam.nothingwidget`).
+- ~~**No onboarding.**~~ Added 2026-10-12 (P7).
+- ~~**Weather showed fake data; style options only changed the preview.**~~ Fixed
+  2026-10-12 (P5, P6): real Open-Meteo weather; every style option reaches the
+  placed widget.
+- **No real test suite yet** (8 weather unit tests). Namespace is still
+  `com.example.nothingwidget` (applicationId is correctly `com.sritam.nothingwidget`).
 
 ## 3. Target users
 
@@ -125,6 +129,10 @@ Downloads 5,000+ · Rating ≥4.4 · D1 retention ≥55% · D7 ≥25% · crash-f
 Free core (Clock/Date/Battery) + one-time premium unlock (~$1.49) for Weather,
 full color/font options, and future widgets. **No ads.** Alternative: fully free
 + tip jar.
+
+**Constraint (2026-10-12):** weather uses Open-Meteo, whose free API is for
+non-commercial use. Charging for the app (or for weather) needs an Open-Meteo
+subscription. Decide before P11.
 
 ## 10. Future features
 

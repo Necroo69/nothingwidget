@@ -8,7 +8,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
+import android.os.Bundle
+import android.view.View
+import android.widget.RemoteViews
 import com.example.nothingwidget.MainActivity
+import com.example.nothingwidget.R
 import com.example.nothingwidget.data.local.AppDatabase
 import com.example.nothingwidget.data.repository.WidgetRepository
 import com.example.nothingwidget.domain.model.NothingWidgetConfig
@@ -58,8 +62,52 @@ fun editWidgetPendingIntent(context: Context, appWidgetId: Int, fallbackPresetId
     )
 }
 
+/** MainActivity action: open Settings at the weather location picker. */
+const val ACTION_SET_WEATHER_LOCATION = "com.example.nothingwidget.action.SET_WEATHER_LOCATION"
+
+/** Tapping a weather widget that has no location opens the location picker. */
+fun weatherLocationPendingIntent(context: Context, appWidgetId: Int): PendingIntent {
+    val intent = Intent(context, MainActivity::class.java).apply {
+        action = ACTION_SET_WEATHER_LOCATION
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+    return PendingIntent.getActivity(
+        context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+}
+
+/**
+ * Applies what every widget shares: the card drawn from [config] (corner radius, dot grid, glyph
+ * border) and tap-to-edit. [defaultSizeDp] is the provider's minimum size, used until the
+ * launcher reports the real one.
+ */
+fun RemoteViews.applyCard(
+    context: Context,
+    manager: AppWidgetManager,
+    appWidgetId: Int,
+    config: NothingWidgetConfig?,
+    rootId: Int,
+    presetId: String,
+    defaultSizeDp: Pair<Int, Int>
+) {
+    val (width, height) = widgetSizeDp(manager, appWidgetId, defaultSizeDp.first, defaultSizeDp.second)
+    setImageViewBitmap(R.id.widget_background, renderWidgetBackground(context, config, width, height))
+    setOnClickPendingIntent(rootId, editWidgetPendingIntent(context, appWidgetId, presetId))
+}
+
+/** Shows [text] in [viewId], or hides the view when it is blank. */
+fun RemoteViews.setOptionalText(viewId: Int, text: String?) {
+    setViewVisibility(viewId, if (text.isNullOrBlank()) View.GONE else View.VISIBLE)
+    setTextViewText(viewId, text.orEmpty())
+}
+
 /** Base for every home-screen provider: keeps the widget_instances table in step with the launcher. */
 abstract class NothingWidgetProvider : AppWidgetProvider() {
+    // Resizing changes the card bitmap's size, so redraw.
+    override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle) {
+        onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
+    }
+
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         runAsync { widgetRepository(context).deleteWidgets(appWidgetIds) }
     }

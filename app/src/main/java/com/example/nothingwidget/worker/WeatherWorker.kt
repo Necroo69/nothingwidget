@@ -1,38 +1,29 @@
 package com.example.nothingwidget.worker
 
 import android.content.Context
-import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.nothingwidget.data.repository.WeatherRefreshResult
+import com.example.nothingwidget.data.repository.WeatherRepository
 import com.example.nothingwidget.widgets.WeatherWidget
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
+/** Fetches the forecast for the saved location, caches it, and redraws every weather widget. */
 class WeatherWorker(
     private val context: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        try {
-            // Phase 7 will fetch actual data here and save to DataStore/Room.
-            // For now, force-refresh every placed WeatherWidget instance directly.
-            // Sending ACTION_APPWIDGET_UPDATE without EXTRA_APPWIDGET_IDS can be
-            // ignored by AppWidgetProvider, so resolve the active IDs here.
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(
-                ComponentName(context, WeatherWidget::class.java)
-            )
+    override suspend fun doWork(): Result {
+        val result = WeatherRepository(context).refresh()
 
-            if (appWidgetIds.isNotEmpty()) {
-                // Not WeatherWidget().onUpdate(): its goAsync() is null outside a broadcast.
-                WeatherWidget.updateWidgets(context, appWidgetManager, appWidgetIds)
-            }
+        // Redraw even on failure, so widgets show the cached forecast's time or a setup prompt.
+        // Not WeatherWidget().onUpdate(): its goAsync() is null outside a broadcast.
+        WeatherWidget.updateAll(context)
 
-            Result.success()
-        } catch (e: Exception) {
-            Result.retry()
-        }
+        return if (result == WeatherRefreshResult.FAILED && runAttemptCount < MAX_RETRIES) Result.retry() else Result.success()
+    }
+
+    private companion object {
+        const val MAX_RETRIES = 3
     }
 }

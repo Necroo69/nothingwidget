@@ -173,6 +173,12 @@ roadmap is based on a direct inspection of the code on branch
   | Weather network path | ⏭ not applicable: no network call exists yet (P6). Re-run this table after P6 |
 
 - **How to repeat:** see Memory §10.
+- **Correction (2026-10-12, M2):** the WorkManager row above was too optimistic.
+  In release, every worker run failed with "Could not create Input Merger"
+  (WorkManager 2.9's rule keeps `OverwritingInputMerger` but not, under R8 full
+  mode, its constructor). It went unnoticed because the worker had nothing to
+  fetch yet. `rules.keep` now keeps it, and the weather fetch was verified in
+  release. See Memory §11.
 
 ## Phase ordering rationale
 

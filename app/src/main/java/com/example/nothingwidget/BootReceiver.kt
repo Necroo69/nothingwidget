@@ -5,20 +5,16 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.example.nothingwidget.widgets.BatteryWidget
 import com.example.nothingwidget.widgets.ClockWidget
 import com.example.nothingwidget.widgets.DateWidget
 import com.example.nothingwidget.widgets.WeatherWidget
-import com.example.nothingwidget.worker.WeatherWorker
-import java.util.concurrent.TimeUnit
+import com.example.nothingwidget.widgets.runAsync
+import com.example.nothingwidget.worker.WeatherScheduler
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            
             // Manually ping all widgets so they aren't blank for 10-15s
             val widgetManager = AppWidgetManager.getInstance(context)
             val widgetClasses = listOf(
@@ -39,16 +35,12 @@ class BootReceiver : BroadcastReceiver() {
                 }
             }
 
-            val weatherWorkRequest = PeriodicWorkRequestBuilder<WeatherWorker>(
-                15, TimeUnit.MINUTES,
-                5, TimeUnit.MINUTES
-            ).build()
-
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "WeatherUpdateWork",
-                ExistingPeriodicWorkPolicy.KEEP,
-                weatherWorkRequest
-            )
+            // Periodic work survives reboot on its own; this also covers a schedule that was
+            // cancelled by a force-stop, and fetches fresh data for the widgets just pinged.
+            runAsync {
+                WeatherScheduler.sync(context)
+                if (WeatherScheduler.hasWeatherWidgets(context)) WeatherScheduler.refreshNow(context)
+            }
         }
     }
 }

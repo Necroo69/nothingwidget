@@ -3,9 +3,11 @@ package com.example.nothingwidget.ui.screens.customizer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nothingwidget.data.repository.BatteryRepository
+import com.example.nothingwidget.data.repository.WeatherRepository
 import com.example.nothingwidget.data.repository.WidgetRepository
 import com.example.nothingwidget.domain.model.BatteryInfo
 import com.example.nothingwidget.domain.model.NothingWidgetConfig
+import com.example.nothingwidget.domain.model.WeatherInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,8 @@ import kotlinx.coroutines.launch
 
 class WidgetCustomizerViewModel(
     private val widgetRepository: WidgetRepository,
-    batteryRepository: BatteryRepository
+    batteryRepository: BatteryRepository,
+    weatherRepository: WeatherRepository
 ) : ViewModel() {
 
     private val _config = MutableStateFlow<NothingWidgetConfig?>(null)
@@ -29,6 +32,12 @@ class WidgetCustomizerViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = batteryRepository.currentBatteryInfo()
+    )
+
+    val weatherInfo: StateFlow<WeatherInfo> = weatherRepository.weatherState.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = WeatherInfo()
     )
 
     fun loadWidget(widgetId: String) {

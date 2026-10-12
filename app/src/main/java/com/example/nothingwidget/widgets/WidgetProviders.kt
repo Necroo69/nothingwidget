@@ -35,3 +35,11 @@ fun requestWidgetUpdate(context: Context, type: WidgetType) {
         putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
     })
 }
+
+/** Every widget type that has its own provider; one per registered provider class. */
+private val PROVIDER_TYPES = listOf(WidgetType.DIGITAL_CLOCK, WidgetType.DATE, WidgetType.BATTERY_CIRCLE, WidgetType.WEATHER)
+
+/** Asks every placed home-screen widget to redraw from its saved config and cached data. */
+fun requestAllWidgetUpdates(context: Context) {
+    PROVIDER_TYPES.forEach { requestWidgetUpdate(context, it) }
+}

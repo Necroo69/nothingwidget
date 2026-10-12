@@ -64,6 +64,7 @@ import com.example.nothingwidget.domain.model.BatteryInfo
 import com.example.nothingwidget.domain.model.NothingWidgetConfig
 import com.example.nothingwidget.domain.model.QuickToggleState
 import com.example.nothingwidget.domain.model.WeatherInfo
+import com.example.nothingwidget.domain.model.WeatherStatus
 import com.example.nothingwidget.domain.model.WidgetType
 import com.example.nothingwidget.ui.theme.NothingDotFontFamily
 import com.example.nothingwidget.ui.theme.NothingRed
@@ -330,7 +331,10 @@ fun WeatherWidgetView(weatherInfo: WeatherInfo, accentColor: Color) {
         ) {
             Column {
                 Text(
-                    text = weatherInfo.cityName.uppercase(),
+                    text = when (weatherInfo.status) {
+                        WeatherStatus.NO_LOCATION -> "SET A LOCATION"
+                        else -> weatherInfo.cityName.substringBefore(",").uppercase()
+                    },
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp,
                     fontFamily = NothingDotFontFamily,
@@ -338,14 +342,18 @@ fun WeatherWidgetView(weatherInfo: WeatherInfo, accentColor: Color) {
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = weatherInfo.condition.label.uppercase(),
+                    text = when (weatherInfo.status) {
+                        WeatherStatus.READY -> weatherInfo.condition.label.uppercase()
+                        WeatherStatus.NO_LOCATION -> "IN SETTINGS"
+                        WeatherStatus.NO_DATA -> "WAITING FOR DATA"
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
                     fontFamily = NothingDotFontFamily
                 )
             }
             Text(
-                text = "${weatherInfo.temperatureC?.toString() ?: "--"}°",
+                text = "${weatherInfo.temperature?.toString() ?: "--"}°",
                 color = accentColor,
                 fontSize = 32.sp,
                 fontFamily = NothingDotFontFamily,
@@ -371,7 +379,7 @@ fun WeatherWidgetView(weatherInfo: WeatherInfo, accentColor: Color) {
                         fontSize = 14.sp
                     )
                     Text(
-                        text = "${item.tempC?.toString() ?: "--"}°",
+                        text = "${item.temp?.toString() ?: "--"}°",
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 12.sp,
                         fontFamily = NothingDotFontFamily,

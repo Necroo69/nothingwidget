@@ -2,25 +2,44 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_date_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#141313">
+    android:layout_height="match_parent">
 
-    <TextClock
-        android:id="@+id/widget_date_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:format12Hour="EEE '·' dd MMMM"
-        android:format24Hour="EEE '·' dd MMMM"
-        android:fontFamily="@font/space_mono_bold"
-        android:textColor="#FFFFFF"
-        android:textAllCaps="true"
-        android:textSize="28sp" />
-
-    <FrameLayout
+    <ImageView
+        android:id="@+id/widget_background"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_gravity="bottom"
-        android:background="#FFFFFF" />
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_card_default" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp">
+
+        <TextClock
+            android:id="@+id/widget_date_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/space_mono_bold"
+            android:format12Hour="EEE '·' dd MMMM"
+            android:format24Hour="EEE '·' dd MMMM"
+            android:textAllCaps="true"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/widget_date_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/space_mono_regular"
+            android:maxLines="1"
+            android:textAllCaps="true"
+            android:textColor="#8E9192"
+            android:textSize="10sp"
+            android:visibility="gone" />
+    </LinearLayout>
 </FrameLayout>
