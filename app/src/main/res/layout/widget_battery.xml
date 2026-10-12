@@ -1,31 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_battery_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#141313"
-    android:gravity="center_vertical"
-    android:padding="16dp"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/widget_battery_text"
+    <ImageView
+        android:id="@+id/widget_background"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="87%"
-        android:gravity="right"
-        android:fontFamily="@font/space_mono_bold"
-        android:textColor="#FFFFFF"
-        android:textSize="36sp" />
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_card_default" />
 
-    <ProgressBar
-        android:id="@+id/battery_progress"
-        style="@android:style/Widget.ProgressBar.Horizontal"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:layout_marginTop="8dp"
-        android:max="100"
-        android:progress="87"
-        android:progressTint="#FFFFFF"
-        android:progressBackgroundTint="#201F1F" />
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/widget_battery_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/space_mono_bold"
+            android:gravity="end"
+            android:text="--%"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp" />
+
+        <ProgressBar
+            android:id="@+id/battery_progress"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressBackgroundTint="#333338"
+            android:progressTint="#FFFFFF" />
+    </LinearLayout>
+</FrameLayout>

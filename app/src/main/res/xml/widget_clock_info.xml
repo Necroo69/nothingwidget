@@ -4,7 +4,7 @@
     android:minHeight="110dp"
     android:targetCellWidth="3"
     android:targetCellHeight="2"
-    android:description="@string/app_name"
+    android:description="@string/widget_clock_description"
     android:previewLayout="@layout/widget_clock_layout"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_clock_layout"

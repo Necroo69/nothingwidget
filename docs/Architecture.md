@@ -8,7 +8,7 @@ reflects the code.
 ## 1. Current architecture (as-is, verified)
 
 ```
-com.example.nothingwidget/              # namespace still com.example; appId = com.sritam.nothingwidget
+com.necroo69.nothingwidget/             # namespace = applicationId (renamed 2026-10-12)
 ├── NothingWidgetApp.kt                 # @HiltAndroidApp
 ├── MainActivity.kt                     # @AndroidEntryPoint, hosts NavGraph, edge-to-edge
 ├── BootReceiver.kt                     # BOOT_COMPLETED: pings widgets once, enqueues WeatherWorker
@@ -18,8 +18,11 @@ com.example.nothingwidget/              # namespace still com.example; appId = c
 │   │   ├── WidgetConfigDao.kt / WidgetConfigEntity.kt
 │   │   ├── StepDao.kt / StepEntryEntity.kt
 │   │   └── NoteDao.kt / SavedNoteEntity.kt
+│   ├── remote/OpenMeteoApi.kt          # Retrofit + Moshi (KSP codegen): forecast + city search
 │   └── repository/
-│       ├── WidgetRepository.kt         # presets merged with saved rows, keyed by STRING id
+│       ├── WidgetRepository.kt         # templates + per-widget instances (appWidgetId)
+│       ├── WeatherRepository.kt        # location + cached forecast in the "weather" DataStore
+│       ├── DeviceLocation.kt           # one-shot coarse fix, foreground only
 │       ├── AppPreferencesRepository.kt
 │       ├── BatteryRepository.kt / WeatherRepository.kt
 │       ├── StepTrackerRepository.kt / AudioRepository.kt / QuickSettingsRepository.kt
@@ -28,11 +31,15 @@ com.example.nothingwidget/              # namespace still com.example; appId = c
 │   ├── navigation/ (Screen.kt, NavGraph.kt)   # typed routes
 │   ├── components/ (DotMatrixText, GlyphVisualizerCanvas, NothingGlassCard, …)
 │   ├── theme/ (Color, Theme, Type)
-│   └── screens/ (gallery, customizer, settings, glyph, studio)  # each with a ViewModel
+│   └── screens/ (gallery, customizer, settings, onboarding, glyph, studio)
 ├── widgets/                            # the only provider package (B1 done 2026-10-08)
 │   ├── {Clock,Date,Battery,Weather}Widget.kt   # all REGISTERED; clock/date ticked by TextClock
+│   ├── WidgetBackground.kt             # draws the styled card bitmap (radius, dot grid, border)
+│   ├── WidgetEngine.kt                 # what screens may ask of widgets (redraw, refresh, reschedule)
 │   └── WidgetProviders.kt              # providerClassFor(type): WidgetType → provider, or null
-└── worker/WeatherWorker.kt             # WorkManager periodic (15 min)
+└── worker/
+    ├── WeatherWorker.kt                # fetch → cache → redraw weather widgets
+    └── WeatherScheduler.kt             # periodic (Settings interval) while a weather widget exists
 ```
 
 **Pattern:** MVVM + Repository + Hilt DI. Room for persistence. This foundation is
@@ -49,8 +56,10 @@ real and solid — the gaps are in the widget engine, not the app architecture.
 | Per-minute / midnight updates | ✅ launcher-driven `TextClock`, no AlarmManager needed (B2, verified 2026-10-10) |
 | Widgets survive reboot, Doze, app update with correct data | ✅ verified 2026-10-10 |
 | One provider set, all registered | ✅ B1 done; Quick Toggles / Steps / Audio / Quick Note are in-app only |
-| Multi-instance independent configs | ❌ keyed by string id, not `appWidgetId` |
-| Minified release build runs | ❌ R8 on, no keep rules / `proguardFiles` |
+| Multi-instance independent configs | ✅ `widget_instances` keyed by `appWidgetId` (B3, 2026-10-11) |
+| Minified release build runs | ✅ verified on device (B4, 2026-10-11; re-verified with weather 2026-10-12); 5.5 MB |
+| Style options (radius, dot grid, border, subtitle) on placed widgets | ✅ P5, 2026-10-12 |
+| Real weather, offline cache, location permission | ✅ P6/P7, 2026-10-12 |
 
 ## 2. Target architecture (to-be)
 
@@ -69,8 +78,11 @@ Key changes:
    date are `TextClock`s that the launcher ticks itself. Verified for minute tick,
    midnight rollover, timezone change, forced Doze, reboot and app update. The
    unused `SCHEDULE_EXACT_ALARM` permission was removed. *(B2)*
-3. **Instance-scoped config:** add `appWidgetId` keying (+ Room migration). *(B3)*
-4. **Release safety:** `proguard-rules.pro` keep rules + `proguardFiles`. *(B4)*
+3. ~~**Instance-scoped config**~~ — done (2026-10-11): `widget_instances` table,
+   tap-to-edit, gallery edits flow to uncustomized widgets. *(B3)*
+4. ~~**Release safety**~~ — done (2026-10-11): AGP 9 applies `proguard-android-optimize.txt`
+   and library rules by default; `src/main/keepRules/rules.keep` adds the Retrofit 2.9
+   suspend-function rules. Verified on device. *(B4)*
 
 ## 3. Widget update architecture
 
@@ -80,7 +92,12 @@ Clock  → TextClock in RemoteViews; the launcher re-formats it on TIME_TICK, ti
 Date   → same TextClock mechanism; rolls over at local midnight by itself
 Battery→ updatePeriodMillis 30 min (current). POWER_(DIS)CONNECTED / BATTERY_CHANGED are NOT
          delivered to manifest receivers on API 26+; instant updates need a live-process receiver
-Weather→ WorkManager PeriodicWorkRequest (≥15 min) → OpenMeteo → Room → updateAppWidget
+Weather→ WorkManager PeriodicWorkRequest (Settings: 15 min–3 h, needs network) → Open-Meteo →
+         "weather" DataStore (JSON, °C) → updateAppWidget. Scheduled by WeatherWidget.onEnabled,
+         app start and boot; cancelled by onDisabled. Device location is read only while the
+         app is open (no background location permission); the worker reuses saved coordinates
+Card   → every provider draws its background as a bitmap from the widget's config at the
+         launcher-reported size (redrawn on resize). Android 12+ clips to the system radius
 Boot   → the system re-sends APPWIDGET_UPDATE after boot and after an app update; BootReceiver
          also pings all providers and enqueues WeatherWorker
 ```
@@ -95,10 +112,37 @@ example a "next alarm in 3h" label); prefer an inexact alarm then.
 
 ## 4. Persistence (current)
 
-**Room**, table `widget_configs`, primary key `id: String` (e.g.
-`clock_digital_default`). `WidgetRepository` merges built-in presets with saved
-rows via `associateBy { it.id }`. `updateIntervalMinutes` exists on the entity but
-no scheduler reads it. **Target:** add `appWidgetId` so instances are independent.
+**Room** `nothing_widgets.db`, schema version 2.
+
+- `widget_configs` — gallery **templates**, primary key `id: String` (e.g.
+  `clock_digital_default`). `WidgetRepository` merges built-in presets with saved
+  rows via `associateBy { it.id }`. `updateIntervalMinutes` exists but nothing
+  reads it.
+- `widget_instances` (v2, B3) — one row per **placed** widget, primary key
+  `appWidgetId`: `presetId` (the template it came from), `isCustomized`, and its
+  own style columns.
+
+How a placed widget gets its config (`WidgetRepository.getConfigForWidget`):
+
+```
+row = widget_instances[appWidgetId]
+template = widget_configs[row.presetId] ?: provider's DEFAULT_PRESET_ID
+config = row.isCustomized ? template + row's style : template
+```
+
+- **Pinned from the gallery:** `requestPinAppWidget`'s success callback
+  (`WidgetPinnedReceiver`) inserts the row with `isCustomized = false`.
+- **Added from the launcher picker, or placed before B3:** no row, so the provider's
+  default template is used.
+- **Tap a placed widget:** opens `MainActivity` with `ACTION_EDIT_WIDGET` and the
+  customizer edits that widget only. Saving sets `isCustomized = true`.
+- **Gallery EDIT:** saves the template. Every widget with `isCustomized = false`
+  follows it.
+- **Removed / restored:** `NothingWidgetProvider.onDeleted` deletes the row, and
+  `onRestored` remaps ids after a backup restore.
+- Migration 1→2 only creates the table (no data loss).
+  `fallbackToDestructiveMigration()` is still set for unknown version jumps;
+  remove it before launch so a missing migration fails loudly.
 
 ## 5. Testing strategy
 
@@ -113,5 +157,5 @@ round-trip; instrumented tests for gallery + customizer; manual device matrix
 New widget type → add a provider in the canonical package, register in the
 manifest, add a widget-info XML + layout, extend `WidgetType` and presets. More
 options → extend `NothingWidgetConfig` + the customizer. Multiple instances →
-`appWidgetId` keying (B3). Tablets → `WindowSizeClass`. Localization → move
+done via `widget_instances` (B3). Tablets → `WindowSizeClass`. Localization → move
 decorative strings to `strings.xml`.

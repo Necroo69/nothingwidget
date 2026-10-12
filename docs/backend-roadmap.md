@@ -32,8 +32,8 @@ roadmap is based on a direct inspection of the code on branch
   `DATE` exists only in `widgets/`, `STEP_TRACKER`/`QUICK_TOGGLES`/`AUDIO_PLAYER`
   only in `widget/`, and `QUICK_NOTE` has no provider in either (gallery falls
   back to `ClockWidget`).
-- **Namespace** is still `com.example.nothingwidget`; `applicationId` is
-  `com.sritam.nothingwidget`.
+- ~~**Namespace** is still `com.example.nothingwidget`.~~ Renamed 2026-10-12 to
+  `com.necroo69.nothingwidget` (namespace and `applicationId`).
 
 ### Fixed since (2026-10-02) — see `docs/Memory.md` §7
 - `compileSdk` restored to 37 (35 broke `assembleDebug`).
@@ -98,6 +98,87 @@ roadmap is based on a direct inspection of the code on branch
   `BootReceiver` (Memory §7, fix in P6). Instant battery updates on plug/unplug
   are not possible without a running process.
 - The original B2 plan below is kept for history but **superseded**.
+
+### B3 done (2026-10-11)
+- **Decisions (user):**
+  - **Storage:** a separate `widget_instances` table, not a column on
+    `widget_configs`, so gallery templates and placed widgets stay apart.
+  - **Editing one widget:** tap the placed widget.
+  - **Gallery EDIT:** changes the template and every placed widget not
+    customized on its own.
+- **Data:** `WidgetInstanceEntity(appWidgetId PK, presetId, isCustomized, style
+  columns)`. Room v2 with `MIGRATION_1_2`, which only creates the table, so no
+  data is lost. `WidgetRepository.getConfigForWidget(appWidgetId,
+  fallbackPresetId)` resolves the config: instance row → its template → the
+  provider's `DEFAULT_PRESET_ID`.
+- **Lifecycle:**
+  - Gallery pinning passes a success callback (`WidgetPinnedReceiver`) that
+    links the new id to its template.
+  - All four providers extend `NothingWidgetProvider`. `onDeleted` removes rows
+    and `onRestored` remaps ids.
+  - Every provider renders per id and sets a tap → `MainActivity`
+    (`ACTION_EDIT_WIDGET`) → customizer in "this widget only" mode.
+- **Verified on the emulator (API 37):**
+
+  | B3 acceptance check | Result |
+  |---|---|
+  | v1 DB with saved templates → install v2 | ✅ `user_version` 2, table added, 2 saved templates kept, no crash |
+  | Pin digital + analog clock from gallery | ✅ rows `(13, clock_digital_default)`, `(12, clock_analog_default)`; red vs white |
+  | Tap one clock → yellow → save | ✅ only that clock turns yellow |
+  | Gallery EDIT digital template → green | ✅ both uncustomized digital clocks (incl. pre-B3 widget with no row) turn green; yellow one unchanged |
+  | Reboot | ✅ each widget keeps its own color |
+  | Remove the yellow widget | ✅ its row is deleted |
+  | Pin Date from gallery | ✅ renders immediately, linked to `date_default` |
+
+- **Known limits:**
+  - Providers apply only the **accent color**. Corner radius, dot grid, glyph
+    border and subtitle change the in-app preview but not the home-screen
+    layouts (roadmap P5).
+  - Clock, analog and world clock all render the same digital `TextClock`
+    layout; the analog/world templates only differ in color on the home screen.
+  - `fallbackToDestructiveMigration()` is still enabled. Remove it before launch.
+- **Testing tip:** `am force-stop` puts the app's widgets in the launcher's
+  "loading" placeholder until the app runs again. That is platform behaviour,
+  not a bug, but it can look like a failed render.
+
+### B4 done (2026-10-11)
+- **Finding:** the premise "R8 is on with no `proguardFiles`, so the release build
+  is unsafe" was out of date. AGP 9.3.1 already applies
+  `proguard-android-optimize.txt` by default and merges `src/main/keepRules/*.keep`.
+  Every library's consumer rules were included (Room, WorkManager, Hilt/Dagger,
+  DataStore, coroutines, Compose, Navigation, Moshi, Retrofit, OkHttp), as were
+  AAPT2's rules for manifest components. Check this in
+  `app/build/outputs/mapping/release/configuration.txt`.
+- **Real gap found:** Retrofit **2.9** does not bundle the R8 full-mode rules for
+  `suspend` service methods (they arrived in 2.10). P6's weather call would have
+  crashed in release with `ClassCastException … ParameterizedType`. Those rules
+  are now in `app/src/main/keepRules/rules.keep`. They are conditional and do
+  nothing until a Retrofit interface exists. Delete them after upgrading Retrofit.
+- **No `proguard-rules.pro` / `proguardFiles` added:** with AGP 9 the `keepRules`
+  folder is the supported place, and adding `proguardFiles` would duplicate the
+  default file.
+- **Verified on the emulator (API 37), release APK signed with the debug key:**
+
+  | B4 acceptance check | Result |
+  |---|---|
+  | `./gradlew assembleRelease` | ✅ succeeds |
+  | APK size (target < 8 MB) | ✅ 5.4 MB (debug: 27.8 MB) |
+  | Launch + every screen (gallery, customizer, card builder, glyph studio, settings) | ✅ no crashes |
+  | Room v2 DB and saved templates read in release | ✅ |
+  | 24h toggle (DataStore) → widget | ✅ `1:18` ↔ `01:18` |
+  | Tap widget → per-widget customizer → save | ✅ only that clock changed |
+  | Pin analog clock (pin callback receiver) | ✅ rendered in the analog template's white |
+  | WeatherWorker via WorkManager (`cmd jobscheduler run -f`) | ✅ ran and was re-enqueued, no crash |
+  | Reboot | ✅ all widgets correct, colors kept |
+  | Weather network path | ⏭ not applicable: no network call exists yet (P6). Re-run this table after P6 |
+
+- **How to repeat:** see Memory §10.
+- **Correction (2026-10-12, M2):** the WorkManager row above was too optimistic.
+  In release, every worker run failed with "Could not create Input Merger"
+  (WorkManager 2.9's rule keeps `OverwritingInputMerger` but not, under R8 full
+  mode, its constructor). It went unnoticed because the worker had nothing to
+  fetch yet. `rules.keep` now keeps it, and the weather fetch was verified in
+  release. See Memory §11.
 
 ## Phase ordering rationale
 
@@ -214,6 +295,8 @@ canonical clock/date providers, `BootReceiver.kt`,
 
 ## Phase B3 — Multi-instance configs (key on `appWidgetId`)
 
+> **Done 2026-10-11** with shape (b), a separate table. See "B3 done" above.
+
 **Goal:** Each placed widget instance carries its own config, so two clocks (or
 two of any type) can differ independently.
 
@@ -251,6 +334,9 @@ only; no UI redesign.
 ---
 
 ## Phase B4 — Release-build safety (R8 / ProGuard)
+
+> **Done 2026-10-11.** See "B4 done" above. The plan below assumed an older AGP;
+> no `proguard-rules.pro` was needed.
 
 **Goal:** A minified release build runs without reflection/codegen crashes and is
 verified on-device.
@@ -291,8 +377,7 @@ Rules can be drafted early; final verification is the last step.
 
 ## Cross-cutting / deferred (tracked, not scheduled here)
 
-- Namespace is still `com.example.nothingwidget`; renaming is a larger refactor —
-  track separately, not part of the widget engine.
+- ~~Namespace rename~~ — done 2026-10-12 (`com.necroo69.nothingwidget`).
 - `updateIntervalMinutes` on the config exists but is unused; B2 should decide
   whether the scheduler honors it (per-widget refresh cadence) or ignores it.
 - Runtime permissions for step (`ACTIVITY_RECOGNITION`), audio
