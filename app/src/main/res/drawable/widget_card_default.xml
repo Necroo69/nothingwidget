@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder card for the widget picker preview and the first frame after placement.
+     Providers replace it with a bitmap drawn from the widget's config (WidgetBackground.kt). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FF18181B" />
+    <corners android:radius="24dp" />
+    <stroke android:width="1dp" android:color="#80D71921" />
+</shape>

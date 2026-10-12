@@ -211,7 +211,8 @@ val uiState by viewModel.uiState.collectAsState()
 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 4. Build & Release Rules
 RULE-B1: Package ID must never be com.example.*
-Violation found:
+Resolved 2026-10-12: namespace and applicationId are com.necroo69.nothingwidget.
+Original violation:
  
 applicationId = "com.example.nothingwidget"
  in 
